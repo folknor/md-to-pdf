@@ -103,11 +103,11 @@ async function main(args: typeof cliFlags, config: Config) {
 			// Handle both ES modules and CommonJS config files
 			let configFile: Partial<Config>;
 
-			if (configFilePath.endsWith('.cjs')) {
+			if (configFilePath.endsWith(".cjs")) {
 				// For .cjs files, use CommonJS require
 				const require = createRequire(import.meta.url);
 				configFile = require(configFilePath);
-			} else if (configFilePath.endsWith('.js')) {
+			} else if (configFilePath.endsWith(".js")) {
 				// For .js files, try CommonJS require first (since most config files use CommonJS)
 				// If that fails, fall back to ES module import
 				try {

@@ -28,8 +28,7 @@ export const convertMdToPdf = async (
 	const mdFileContent =
 		"content" in input
 			? input.content
-			: await fs.readFile(input.path, { encoding: "utf-8" })
-;
+			: await fs.readFile(input.path, { encoding: "utf-8" });
 
 	const { content: md, data: frontMatterConfig } = grayMatter(
 		mdFileContent,
