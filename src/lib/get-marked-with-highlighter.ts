@@ -1,44 +1,27 @@
 import hljs from "highlight.js";
 import type { MarkedExtension, MarkedOptions } from "marked";
-import { marked } from "marked";
+import { Marked } from "marked";
+import { markedHighlight } from "marked-highlight";
+import { markedSmartypants } from "marked-smartypants";
+import { gfmHeadingId } from "./slugger.js";
 
 export const getMarked = (
 	options: MarkedOptions,
 	extensions: MarkedExtension[],
 ) => {
-	// Create a custom renderer with highlight support
-	const renderer = new marked.Renderer();
-	const originalCode = renderer.code.bind(renderer);
-
-	renderer.code = ({
-		text,
-		lang,
-		escaped,
-	}: {
-		text: string;
-		lang?: string;
-		escaped?: boolean;
-	}) => {
-		const language = lang || "plaintext";
-		const validLang = hljs.getLanguage(language) ? language : "plaintext";
-
-		if (escaped) {
-			// biome-ignore lint/suspicious/noExplicitAny: marked renderer callback requires dynamic typing
-			return originalCode({ text, lang, escaped } as any);
-		}
-
-		try {
-			return hljs.highlight(text, { language: validLang }).value;
-		} catch (_error) {
-			// biome-ignore lint/suspicious/noExplicitAny: marked renderer callback requires dynamic typing
-			return originalCode({ text, lang, escaped } as any);
-		}
-	};
-
-	marked.setOptions({
-		...options,
-		renderer,
+	const highlightExtension = markedHighlight({
+		langPrefix: "hljs language-",
+		highlight(code, lang) {
+			const language = hljs.getLanguage(lang) ? lang : "plaintext";
+			return hljs.highlight(code, { language }).value;
+		},
 	});
-	marked.use(...extensions);
-	return marked;
+	const headingIdExt = gfmHeadingId();
+	const smartypantsExt = markedSmartypants();
+	return new Marked(
+		highlightExtension,
+		headingIdExt,
+		smartypantsExt,
+		...extensions,
+	).setOptions({ ...options });
 };
