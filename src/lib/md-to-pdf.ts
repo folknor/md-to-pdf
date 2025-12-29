@@ -8,6 +8,7 @@ import { generateOutput } from "./generate-output.js";
 import { getHtml } from "./get-html.js";
 import { getOutputFilePath } from "./get-output-file-path.js";
 import { getMarginObject } from "./helpers.js";
+import { resolveFileRefs } from "./resolve-file-refs.js";
 
 /**
  * Parse YAML front-matter from markdown content.
@@ -47,15 +48,22 @@ export const convertMdToPdf = async (
 			? input.content
 			: await fs.readFile(input.path, { encoding: "utf-8" });
 
-	const { content: md, data: frontMatterConfig } = parseFrontMatter(mdFileContent);
+	const { content: md, data: rawFrontMatter } = parseFrontMatter(mdFileContent);
+
+	// resolve @filename references in front-matter relative to markdown file
+	const baseDir = "path" in input ? dirname(resolve(input.path)) : process.cwd();
+	const frontMatterConfig = await resolveFileRefs(
+		rawFrontMatter as Partial<Config>,
+		baseDir,
+	);
 
 	// merge front-matter config
 	config = {
 		...config,
-		...(frontMatterConfig as Partial<Config>),
+		...frontMatterConfig,
 		pdf_options: {
 			...config.pdf_options,
-			...(frontMatterConfig as Partial<Config>).pdf_options,
+			...frontMatterConfig.pdf_options,
 		},
 	};
 

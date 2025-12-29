@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 
+import { promises as fs } from "node:fs";
 import { createRequire } from "node:module";
-import path from "node:path";
+import { dirname, resolve } from "node:path";
 import arg from "arg";
 import Listr from "listr";
+import YAML from "yaml";
 import { type Config, defaultConfig } from "./lib/config.js";
 import { closeBrowser } from "./lib/generate-output.js";
 import { help } from "./lib/help.js";
 import { convertMdToPdf } from "./lib/md-to-pdf.js";
+import { resolveFileRefs } from "./lib/resolve-file-refs.js";
 
 // --
 // Configure CLI Arguments
@@ -26,7 +29,7 @@ export const cliFlags = arg({
 // --
 // Run
 
-main(cliFlags, defaultConfig).catch((error) => {
+main(cliFlags).catch((error) => {
 	console.error(error);
 	process.exit(1);
 });
@@ -34,7 +37,7 @@ main(cliFlags, defaultConfig).catch((error) => {
 // --
 // Define Main Function
 
-async function main(args: typeof cliFlags, config: Config) {
+async function main(args: typeof cliFlags) {
 	process.title = "md-to-pdf";
 
 	if (args["--version"]) {
@@ -53,61 +56,16 @@ async function main(args: typeof cliFlags, config: Config) {
 		return help();
 	}
 
-	/**
-	 * 2. Read config file and merge it into the config object.
-	 */
+	let config: Config = { ...defaultConfig };
 
 	if (args["--config-file"]) {
 		try {
-			const configFilePath = path.resolve(args["--config-file"]);
-
-			// Handle both ES modules and CommonJS config files
-			let configFile: Partial<Config>;
-
-			if (configFilePath.endsWith(".cjs")) {
-				// For .cjs files, use CommonJS require
-				const require = createRequire(import.meta.url);
-				configFile = require(configFilePath);
-			} else if (configFilePath.endsWith(".js")) {
-				// For .js files, try CommonJS require first (since most config files use CommonJS)
-				// If that fails, fall back to ES module import
-				try {
-					const require = createRequire(import.meta.url);
-					configFile = require(configFilePath);
-				} catch (requireError) {
-					// If CommonJS require fails, try ES module import
-					try {
-						const importedModule = await import(configFilePath);
-						configFile = (importedModule as any).default || importedModule;
-					} catch (importError) {
-						// If both fail, rethrow the original require error
-						throw requireError;
-					}
-				}
-			} else {
-				// For non-.js files, try to import with .js extension first, then .cjs
-				try {
-					const importPath = `${configFilePath}.js`;
-					try {
-						const require = createRequire(import.meta.url);
-						configFile = require(importPath);
-					} catch (requireError) {
-						// If CommonJS require fails, try ES module import
-						try {
-							const importedModule = await import(importPath);
-							configFile = (importedModule as any).default || importedModule;
-						} catch (importError) {
-							// Try .cjs extension
-							const cjsImportPath = `${configFilePath}.cjs`;
-							const require = createRequire(import.meta.url);
-							configFile = require(cjsImportPath);
-						}
-					}
-				} catch (error) {
-					// If all attempts fail, rethrow
-					throw error;
-				}
-			}
+			const configFilePath = resolve(args["--config-file"]);
+			const configContent = await fs.readFile(configFilePath, "utf-8");
+			const configFile = await resolveFileRefs(
+				YAML.parse(configContent) as Partial<Config>,
+				dirname(configFilePath),
+			);
 
 			config = {
 				...config,
@@ -115,10 +73,8 @@ async function main(args: typeof cliFlags, config: Config) {
 				pdf_options: { ...config.pdf_options, ...configFile.pdf_options },
 			};
 		} catch (error) {
-			console.warn(
-				`Warning: couldn't read config file: ${path.resolve(args["--config-file"])}`,
-			);
-			console.warn(error instanceof SyntaxError ? error.message : error);
+			console.warn(`Warning: couldn't read config file: ${resolve(args["--config-file"])}`);
+			console.warn(error instanceof Error ? error.message : error);
 		}
 	}
 
