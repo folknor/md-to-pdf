@@ -1,9 +1,26 @@
 import { promises as fs } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, relative, resolve } from "node:path";
-import grayMatter from "gray-matter";
 import type { Browser } from "puppeteer";
+import YAML from "yaml";
 import type { Config } from "./config.js";
+
+/**
+ * Parse YAML front-matter from markdown content.
+ */
+function parseFrontMatter(content: string): { data: Record<string, unknown>; content: string } {
+	const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(content);
+	if (!match) return { data: {}, content };
+	try {
+		return {
+			data: YAML.parse(match[1]!) || {},
+			content: match[2]!,
+		};
+	} catch (error) {
+		console.warn("Warning: front-matter could not be parsed:", error);
+		return { data: {}, content };
+	}
+}
 import { generateOutput } from "./generate-output.js";
 import { getHtml } from "./get-html.js";
 import { getOutputFilePath } from "./get-output-file-path.js";
@@ -30,24 +47,17 @@ export const convertMdToPdf = async (
 			? input.content
 			: await fs.readFile(input.path, { encoding: "utf-8" });
 
-	const { content: md, data: frontMatterConfig } = grayMatter(
-		mdFileContent,
-		config.gray_matter_options,
-	);
+	const { content: md, data: frontMatterConfig } = parseFrontMatter(mdFileContent);
 
 	// merge front-matter config
-	if (frontMatterConfig instanceof Error) {
-		console.warn(
-			"Warning: the front-matter was ignored because it could not be parsed:\n",
-			frontMatterConfig,
-		);
-	} else {
-		config = {
-			...config,
-			...(frontMatterConfig as Config),
-			pdf_options: { ...config.pdf_options, ...frontMatterConfig.pdf_options },
-		};
-	}
+	config = {
+		...config,
+		...(frontMatterConfig as Partial<Config>),
+		pdf_options: {
+			...config.pdf_options,
+			...(frontMatterConfig as Partial<Config>).pdf_options,
+		},
+	};
 
 	const { headerTemplate, footerTemplate, displayHeaderFooter } =
 		config.pdf_options;

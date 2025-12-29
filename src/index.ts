@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import getPort from "get-port";
 import puppeteer from "puppeteer";
 import {
 	type Config,
@@ -11,7 +10,6 @@ import {
 import type { HtmlOutput, Output, PdfOutput } from "./lib/generate-output.js";
 import { getDir } from "./lib/helpers.js";
 import { convertMdToPdf } from "./lib/md-to-pdf.js";
-import { closeServer, serveDirectory } from "./lib/serve-dir.js";
 
 type Input = ContentInput | PathInput;
 
@@ -47,10 +45,6 @@ export async function mdToPdf(
 		);
 	}
 
-	if (!config.port) {
-		config.port = await getPort();
-	}
-
 	if (!config.basedir) {
 		config.basedir = "path" in input ? getDir(input.path) : process.cwd();
 	}
@@ -65,23 +59,13 @@ export async function mdToPdf(
 		pdf_options: { ...defaultConfig.pdf_options, ...config.pdf_options },
 	};
 
-	const server = await serveDirectory(mergedConfig);
-
 	const browser = await puppeteer.launch(config.launch_options);
 
 	const pdf = await convertMdToPdf(input, mergedConfig, { browser });
 
 	await browser.close();
-	await closeServer(server);
 
 	return pdf;
 }
 
 export default mdToPdf;
-
-export interface PackageJson {
-	engines: {
-		node: string;
-	};
-	version: string;
-}

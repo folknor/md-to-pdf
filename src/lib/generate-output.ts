@@ -1,4 +1,5 @@
-import { join, posix, sep } from "node:path";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import puppeteer, { type Browser } from "puppeteer";
 import type { Config, HtmlConfig, PdfConfig } from "./config.js";
 import { isHttpUrl } from "./is-http-url.js";
@@ -70,16 +71,10 @@ export async function generateOutput(
 
 	const page = await browser.newPage();
 
-	const urlPathname = join(relativePath, "index.html")
-		.split(sep)
-		.join(posix.sep);
-
-	// Ensure port is defined (should be set by caller)
-	if (!config.port) {
-		throw new Error("Port must be defined before calling generateOutput");
-	}
-	await page.goto(`http://localhost:${config.port}/${urlPathname}`); // make sure relative paths work as expected
-	await page.setContent(html); // overwrite the page content with what was generated from the markdown
+	// Inject <base> tag so relative paths in markdown resolve correctly
+	const baseUrl = pathToFileURL(resolve(config.basedir, relativePath) + "/").href;
+	const htmlWithBase = html.replace("<head>", `<head><base href="${baseUrl}">`);
+	await page.setContent(htmlWithBase, { waitUntil: "domcontentloaded" });
 
 	for (const stylesheet of config.stylesheet) {
 		await page.addStyleTag(

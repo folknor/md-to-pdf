@@ -1,20 +1,13 @@
 #!/usr/bin/env node
 
-// --
-// Packages
-
 import { createRequire } from "node:module";
 import path from "node:path";
 import arg from "arg";
-import getPort from "get-port";
-import getStdin from "get-stdin";
 import Listr from "listr";
 import { type Config, defaultConfig } from "./lib/config.js";
 import { closeBrowser } from "./lib/generate-output.js";
 import { help } from "./lib/help.js";
 import { convertMdToPdf } from "./lib/md-to-pdf.js";
-import { closeServer, serveDirectory } from "./lib/serve-dir.js";
-import { validateNodeVersion } from "./lib/validate-node-version.js";
 
 // --
 // Configure CLI Arguments
@@ -44,12 +37,6 @@ main(cliFlags, defaultConfig).catch((error) => {
 async function main(args: typeof cliFlags, config: Config) {
 	process.title = "md-to-pdf";
 
-	if (!validateNodeVersion()) {
-		throw new Error(
-			"Please use a Node.js version that satisfies the version specified in the engines field.",
-		);
-	}
-
 	if (args["--version"]) {
 		const require = createRequire(import.meta.url);
 		const { version } = require("../package.json");
@@ -60,15 +47,9 @@ async function main(args: typeof cliFlags, config: Config) {
 		return help();
 	}
 
-	/**
-	 * 1. Get input.
-	 */
-
 	const files = args._;
 
-	const stdin = await getStdin();
-
-	if (files.length === 0 && !stdin) {
+	if (files.length === 0) {
 		return help();
 	}
 
@@ -141,31 +122,6 @@ async function main(args: typeof cliFlags, config: Config) {
 		}
 	}
 
-	/**
-	 * 3. Start the file server.
-	 */
-
-	config.port = config.port ?? (await getPort());
-
-	const server = await serveDirectory(config);
-
-	/**
-	 * 4. Either process stdin or create a Listr task for each file.
-	 */
-
-	if (stdin) {
-		await convertMdToPdf({ content: stdin }, config, { args })
-			.finally(async () => {
-				await closeBrowser();
-				await closeServer(server);
-			})
-			.catch((error: Error) => {
-				throw error;
-			});
-
-		return;
-	}
-
 	const getListrTask = (file: string) => ({
 		title: `generating ${args["--as-html"] ? "HTML" : "PDF"} from ${file}`,
 		task: async () => convertMdToPdf({ path: file }, config, { args }),
@@ -178,6 +134,5 @@ async function main(args: typeof cliFlags, config: Config) {
 		.run()
 		.finally(async () => {
 			await closeBrowser();
-			await closeServer(server);
 		});
 }

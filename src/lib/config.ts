@@ -1,6 +1,5 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { GrayMatterOption } from "gray-matter";
 import type { MarkedExtension, MarkedOptions } from "marked";
 import type { FrameAddScriptTagOptions, launch, PDFOptions } from "puppeteer";
 import type { TOCOptions } from "./toc.js";
@@ -28,14 +27,6 @@ export const defaultConfig: Config = {
 		},
 	},
 	launch_options: {},
-	gray_matter_options: {
-		engines: {
-			javascript: () =>
-				new Error(
-					"The JS engine for front-matter is disabled by default for security reasons. You can enable it by configuring gray_matter_options.",
-				),
-		},
-	},
 	as_html: false,
 	marked_extensions: [],
 	toc_options: {
@@ -137,19 +128,6 @@ interface BasicConfig {
 	 * @see https://github.com/GoogleChrome/puppeteer/blob/master/docs/api.md#puppeteerlaunchoptions
 	 */
 	launch_options: PuppeteerLaunchOptions;
-
-	/**
-	 * Options for gray-matter (front-matter parser).
-	 *
-	 * @see https://github.com/jonschlinkert/gray-matter#options
-	 */
-	// biome-ignore lint/suspicious/noExplicitAny: gray-matter requires flexible typing for front-matter data
-	gray_matter_options: GrayMatterOption<string, any>;
-
-	/**
-	 * Port to run the local server on.
-	 */
-	port?: number;
 
 	/**
 	 * Custm Extensions to be passed to marked.
