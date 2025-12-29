@@ -4,6 +4,7 @@ import type { ChokidarOptions as WatchOptions } from "chokidar";
 import type { GrayMatterOption } from "gray-matter";
 import type { MarkedExtension, MarkedOptions } from "marked";
 import type { FrameAddScriptTagOptions, launch, PDFOptions } from "puppeteer";
+import type { TOCOptions } from "./toc.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -41,6 +42,12 @@ export const defaultConfig: Config = {
 	as_html: false,
 	devtools: false,
 	marked_extensions: [],
+	toc_options: {
+		firsth1: true,
+		maxdepth: 6,
+		bullets: ["-"],
+		indent: "  ",
+	},
 };
 
 /**
@@ -177,6 +184,12 @@ interface BasicConfig {
 	 * @see https://marked.js.org/using_pro#extensions
 	 */
 	marked_extensions: MarkedExtension[];
+
+	/**
+	 * Options for Table of Contents generation.
+	 * TOC is generated when <!-- toc --> markers are present in the markdown.
+	 */
+	toc_options?: TOCOptions;
 }
 
 export type PuppeteerLaunchOptions = Parameters<typeof launch>[0];
