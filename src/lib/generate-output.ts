@@ -77,8 +77,15 @@ export async function generateOutput(
 	await page.setContent(htmlWithBase, { waitUntil: "domcontentloaded" });
 
 	for (const stylesheet of config.stylesheet) {
+		// If stylesheet contains newlines or {, it's CSS content (from @file resolution)
+		// Otherwise it's a URL or path
+		const isCssContent = stylesheet.includes("\n") || stylesheet.includes("{");
 		await page.addStyleTag(
-			isHttpUrl(stylesheet) ? { url: stylesheet } : { path: stylesheet },
+			isHttpUrl(stylesheet)
+				? { url: stylesheet }
+				: isCssContent
+					? { content: stylesheet }
+					: { path: stylesheet },
 		);
 	}
 
