@@ -60,10 +60,7 @@ export async function generateOutput(
 		}
 
 		if (!browserPromise) {
-			browserPromise = puppeteer.launch({
-				devtools: config.devtools,
-				...config.launch_options,
-			});
+			browserPromise = puppeteer.launch(config.launch_options);
 		}
 
 		return browserPromise;
@@ -101,11 +98,9 @@ export async function generateOutput(
 	// Wait for network to be idle
 	await page.waitForNetworkIdle();
 
-	let outputFileContent: string | Buffer | Uint8Array = "";
+	let outputFileContent: string | Buffer | Uint8Array;
 
-	if (config.devtools) {
-		await new Promise((resolve) => page.on("close", resolve));
-	} else if (config.as_html) {
+	if (config.as_html) {
 		outputFileContent = await page.content();
 	} else {
 		await page.emulateMediaType(config.page_media_type);
@@ -114,12 +109,7 @@ export async function generateOutput(
 
 	await page.close();
 
-	return config.devtools
-		? { filename: undefined, content: "" } // Special case for devtools mode - return empty content
-		: config.as_html
-			? { filename: config.dest, content: outputFileContent as string }
-			: {
-					filename: config.dest,
-					content: outputFileContent as Buffer | Uint8Array,
-				};
+	return config.as_html
+		? { filename: config.dest, content: outputFileContent as string }
+		: { filename: config.dest, content: outputFileContent as Buffer | Uint8Array };
 }

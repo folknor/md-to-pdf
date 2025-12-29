@@ -67,10 +67,7 @@ export async function mdToPdf(
 
 	const server = await serveDirectory(mergedConfig);
 
-	const browser = await puppeteer.launch({
-		devtools: config.devtools,
-		...config.launch_options,
-	});
+	const browser = await puppeteer.launch(config.launch_options);
 
 	const pdf = await convertMdToPdf(input, mergedConfig, { browser });
 

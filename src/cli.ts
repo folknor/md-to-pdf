@@ -22,23 +22,8 @@ import { validateNodeVersion } from "./lib/validate-node-version.js";
 export const cliFlags = arg({
 	"--help": Boolean,
 	"--version": Boolean,
-	"--basedir": String,
-	"--stylesheet": [String],
-	"--css": String,
-	"--document-title": String,
-	"--body-class": [String],
-	"--page-media-type": String,
-	"--highlight-style": String,
-	"--marked-options": String,
-	"--html-pdf-options": String,
-	"--pdf-options": String,
-	"--launch-options": String,
-	"--gray-matter-options": String,
-	"--port": Number,
-	"--stylesheet-encoding": String,
 	"--as-html": Boolean,
 	"--config-file": String,
-	"--devtools": Boolean,
 
 	// aliases
 	"-h": "--help",
@@ -160,11 +145,7 @@ async function main(args: typeof cliFlags, config: Config) {
 	 * 3. Start the file server.
 	 */
 
-	if (args["--basedir"]) {
-		config.basedir = args["--basedir"];
-	}
-
-	config.port = args["--port"] ?? (await getPort());
+	config.port = config.port ?? (await getPort());
 
 	const server = await serveDirectory(config);
 

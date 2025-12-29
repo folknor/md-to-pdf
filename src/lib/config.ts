@@ -39,7 +39,6 @@ export const defaultConfig: Config = {
 	md_file_encoding: "utf-8",
 	stylesheet_encoding: "utf-8",
 	as_html: false,
-	devtools: false,
 	marked_extensions: [],
 	toc_options: {
 		firsth1: true,
@@ -158,12 +157,6 @@ interface BasicConfig {
 	 * CSS stylesheet encoding. Default: `utf-8`.
 	 */
 	stylesheet_encoding: string;
-
-	/**
-	 * If true, open chromium with devtools instead of saving the pdf. This is
-	 * meant for development only, to inspect the rendered HTML.
-	 */
-	devtools: boolean;
 
 	/**
 	 * Port to run the local server on.

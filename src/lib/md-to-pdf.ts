@@ -32,9 +32,7 @@ export const convertMdToPdf = async (
 
 	const { content: md, data: frontMatterConfig } = grayMatter(
 		mdFileContent,
-		args["--gray-matter-options"]
-			? JSON.parse(args["--gray-matter-options"])
-			: config.gray_matter_options,
+		config.gray_matter_options,
 	);
 
 	// merge front-matter config
@@ -68,21 +66,9 @@ export const convertMdToPdf = async (
 		}
 	}
 
-	const jsonArgs = new Set([
-		"--marked-options",
-		"--pdf-options",
-		"--launch-options",
-	]);
-
-	// merge cli args into config
-	for (const arg of Object.entries(args)) {
-		const [argKey, argValue] = arg as [string, string];
-		const key = argKey.slice(2).replace(/-/g, "_");
-
-		// biome-ignore lint/suspicious/noExplicitAny: dynamic CLI argument assignment
-		(config as Record<string, any>)[key] = jsonArgs.has(argKey)
-			? JSON.parse(argValue)
-			: argValue;
+	// merge --as-html from CLI args
+	if (args["--as-html"]) {
+		config.as_html = true;
 	}
 
 	// sanitize the margin in pdf_options
@@ -116,10 +102,6 @@ export const convertMdToPdf = async (
 	const output = await generateOutput(html, relativePath, config, browser);
 
 	if (!output) {
-		if (config.devtools) {
-			throw new Error("No file is generated with --devtools.");
-		}
-
 		throw new Error(`Failed to create ${config.as_html ? "HTML" : "PDF"}.`);
 	}
 
