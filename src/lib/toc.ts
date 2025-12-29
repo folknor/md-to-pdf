@@ -6,8 +6,8 @@
  * Released under the MIT License.
  */
 
+import GithubSlugger from "github-slugger";
 import { marked, type Token, type Tokens } from "marked";
-import { sluggify } from "./slugger.js";
 
 export interface TOCOptions {
 	/** Include the first h1 heading in the TOC. Default: true */
@@ -45,7 +45,7 @@ interface TOCResult {
  */
 class MarkedAdapter {
 	private options: TOCOptions;
-	private seen: Record<string, number> = {};
+	private slugger = new GithubSlugger();
 	private headings: HeadingToken[] = [];
 
 	constructor(options: TOCOptions = {}) {
@@ -94,24 +94,15 @@ class MarkedAdapter {
 		}
 
 		const text = this.getTokenText(token);
-		// Use the same sluggify function as gfmHeadingId to ensure links match
-		const baseSlug = sluggify(headingToken.text);
-
-		// Track seen count for duplicate headings (same logic as gfmHeadingId)
-		let slug = baseSlug;
-		if (this.seen[baseSlug] !== undefined) {
-			this.seen[baseSlug]++;
-			slug = `${baseSlug}-${this.seen[baseSlug]}`;
-		} else {
-			this.seen[baseSlug] = 0;
-		}
+		// Use github-slugger (same as gfmHeadingId) to ensure links match
+		const slug = this.slugger.slug(headingToken.text);
 
 		const heading: HeadingToken = {
 			content: text,
 			slug,
 			lvl: headingDepth,
 			i: this.headings.length,
-			seen: this.seen[baseSlug],
+			seen: 0,
 		};
 
 		this.headings.push(heading);
