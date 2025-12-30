@@ -14,6 +14,7 @@ import {
 	parseFrontMatter,
 	resolveFileRefs,
 } from "./util.js";
+import { validateConfig, formatValidationErrors } from "./validate-config.js";
 
 const PAGED_JS_URL = "https://unpkg.com/pagedjs/dist/paged.polyfill.js";
 
@@ -56,6 +57,12 @@ export const convertMdToPdf = async (
 			...frontMatterConfig.pdf_options,
 		},
 	};
+
+	// Validate merged config
+	const validationErrors = validateConfig(frontMatterConfig);
+	if (validationErrors.length > 0) {
+		console.warn(formatValidationErrors(validationErrors));
+	}
 
 	// Note: displayHeaderFooter auto-enable is handled after simplified header/footer processing below
 

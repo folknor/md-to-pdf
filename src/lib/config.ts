@@ -49,6 +49,7 @@ export const defaultConfig: Config = {
 		bullets: ["-"],
 		indent: "  ",
 	},
+	outline: true,
 };
 
 export interface Config {
@@ -178,6 +179,13 @@ export interface Config {
 	 * Default: true
 	 */
 	firstPageFooter?: boolean;
+
+	/**
+	 * Generate PDF bookmarks/outlines from document headings.
+	 * Allows navigation via PDF viewer's bookmark panel.
+	 * Default: true
+	 */
+	outline?: boolean;
 }
 
 export type PuppeteerLaunchOptions = Parameters<typeof launch>[0];
