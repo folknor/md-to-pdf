@@ -88,12 +88,10 @@ export async function generateOutput(
 		outputFileContent = await page.content();
 	} else {
 		await page.emulateMediaType(config.page_media_type);
-		// generateDocumentOutline creates PDF bookmarks from headings
-		// Type assertion needed as Puppeteer types lag behind Chrome's CDP
 		const pdfOptions = {
 			...config.pdf_options,
-			generateDocumentOutline: config.outline !== false,
-		} as Parameters<typeof page.pdf>[0];
+			outline: config.outline !== false,
+		};
 		outputFileContent = await page.pdf(pdfOptions);
 	}
 
