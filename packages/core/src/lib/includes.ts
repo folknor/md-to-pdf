@@ -12,14 +12,9 @@ export type TemplatesConfig = Record<string, string>;
  * - @include /absolute/path.md
  * - @include "path with spaces/file.md"
  * - @include 'path with spaces/file.md'
+ * - @include template-name (if defined in templates config)
  */
 const INCLUDE_REGEX = /^@include\s+(?:"([^"]+)"|'([^']+)'|(\S+))\s*$/gm;
-
-/**
- * Regex to match @template directives:
- * - @template template-name
- */
-const TEMPLATE_REGEX = /^@template\s+(\S+)\s*$/gm;
 
 /**
  * Normalize a path for cross-platform support.
@@ -63,7 +58,7 @@ async function readFile(filePath: string): Promise<string> {
 }
 
 /**
- * Process @include and @template directives in markdown content.
+ * Process @include directives in markdown content.
  *
  * @param content - The markdown content to process
  * @param baseDir - The base directory for resolving relative paths
@@ -85,45 +80,25 @@ export async function processIncludes(
 		);
 	}
 
-	// Process @template directives first
-	if (templates) {
-		const templateMatches = [...content.matchAll(TEMPLATE_REGEX)];
-		for (const match of templateMatches) {
-			const fullMatch = match[0];
-			const templateName = match[1];
-			if (!templateName) continue;
-
-			const templatePath = templates[templateName];
-
-			if (!templatePath) {
-				throw new Error(
-					`Unknown template "${templateName}". Available: ${Object.keys(templates).join(", ")}`,
-				);
-			}
-
-			const resolvedPath = resolvePath(templatePath, baseDir);
-			const templateContent = await readFile(resolvedPath);
-
-			// Recursively process includes in the template
-			const processedContent = await processIncludes(
-				templateContent,
-				dirname(resolvedPath),
-				templates,
-				depth + 1,
-			);
-
-			content = content.replace(fullMatch, processedContent);
-		}
-	}
-
 	// Process @include directives
+	// If the argument matches a template name, use the template path
+	// Otherwise treat it as a file path
 	const includeMatches = [...content.matchAll(INCLUDE_REGEX)];
 	for (const match of includeMatches) {
 		const fullMatch = match[0];
-		const includePath = match[1] || match[2] || match[3];
-		if (!includePath) continue;
+		const includeArg = match[1] || match[2] || match[3];
+		if (!includeArg) continue;
 
-		const resolvedPath = resolvePath(includePath, baseDir);
+		// Check if it's a template name first
+		let includePath = includeArg;
+		let includeBaseDir = baseDir;
+
+		if (templates && templates[includeArg]) {
+			includePath = templates[includeArg];
+			// Template paths are relative to config file (baseDir)
+		}
+
+		const resolvedPath = resolvePath(includePath, includeBaseDir);
 		const includeContent = await readFile(resolvedPath);
 
 		// Recursively process includes in the included file

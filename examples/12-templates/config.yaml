@@ -1,9 +1,0 @@
-# Named templates - reference by name with @template
-templates:
-  legal: templates/legal-footer.md
-  approval: templates/approval-block.md
-
-theme: beryl
-
-footer:
-  center: Page {page}/{pages}

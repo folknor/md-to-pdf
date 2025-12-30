@@ -295,7 +295,7 @@ export const convertMdToPdf = async (
 		config.pdf_options.displayHeaderFooter = true;
 	}
 
-	// Process @include and @template directives
+	// Process @include directives (file paths or template names)
 	let processedMd = md;
 	try {
 		processedMd = await processIncludes(md, baseDir, config.templates);

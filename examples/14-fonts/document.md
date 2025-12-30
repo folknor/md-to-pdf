@@ -26,7 +26,18 @@ fonts: classic-elegant
 | `editorial` | Cormorant Garamond | Libre Baskerville | Fira Code |
 | `clean-sans` | DM Sans | Inter | Fira Code |
 
-Theme presets (`beryl`, `tufte`, `buttondown`, `pandoc`) are also available.
+### Theme Font Presets
+
+Each theme has matching fonts (system fonts with Google Fonts fallbacks):
+
+| Theme | Heading | Body | Mono |
+|-------|---------|------|------|
+| `beryl` | — | Noto Sans | Fira Code |
+| `tufte` | — | Palatino → EB Garamond | Consolas → Inconsolata |
+| `buttondown` | Helvetica Neue → Inter | Georgia → Gelasio | Courier New → Fira Code |
+| `pandoc` | — | Georgia → Libre Baskerville | Consolas → Fira Code |
+
+System fonts are used when available; fallbacks (after →) are downloaded from Google Fonts.
 
 ## Custom Fonts
 

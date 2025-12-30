@@ -121,7 +121,7 @@ toc_options:
 | `footer` | `string \| object` | - | Footer config (see Footers section) |
 | `metadata` | `object` | - | PDF metadata (author, title, subject, keywords) |
 | `fonts` | `string \| object` | - | Font preset name or custom fonts `{ heading, body, mono }` |
-| `templates` | `object` | - | Named templates for @template directive |
+| `templates` | `object` | - | Named templates for @include |
 | `page_numbers` | `object` | - | Page number format and start value |
 
 ## Stylesheets
@@ -320,11 +320,9 @@ This produces page numbers like "I", "II", "III" instead of "1", "2", "3".
 
 ## Includes and Templates
 
-Include markdown files directly in your documents.
+Include markdown files directly in your documents with `@include`.
 
-### @include Directive
-
-Include content from another markdown file:
+### File Paths
 
 ```markdown
 @include ./shared/header.md
@@ -332,36 +330,29 @@ Include content from another markdown file:
 @include "path with spaces/file.md"
 ```
 
-Paths can be:
-- Relative: `./shared/header.md`
-- Absolute: `/home/user/templates/footer.md`
-- Quoted (for paths with spaces): `"My Templates/header.md"`
+Paths can be relative, absolute, or quoted (for spaces). Includes can be nested.
 
-Includes can be nested (included files can include other files).
+### Named Templates
 
-### @template Directive
-
-Define reusable templates in config and use them by name:
+Define template names in config for commonly used includes:
 
 ```yaml
 templates:
-  legal-footer: "/path/to/legal-footer.md"
-  company-header: "/path/to/company-header.md"
+  legal: "templates/legal-footer.md"
+  header: "templates/company-header.md"
 ```
 
-Then in markdown:
+Then use the name instead of the path:
 
 ```markdown
-# Document Title
-
-@template company-header
+@include header
 
 Content here...
 
-@template legal-footer
+@include legal
 ```
 
-Templates are resolved from the paths specified in config, while `@include` resolves relative to the current file.
+If the argument matches a template name, it uses the template path. Otherwise it's treated as a file path.
 
 ## Icons
 

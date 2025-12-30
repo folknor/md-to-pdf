@@ -68,7 +68,7 @@ Uses pdf-lib for post-processing after Puppeteer generates PDF.
     legal-footer: "/path/to/legal-footer.md"
     company-header: "/path/to/company-header.md"
   ```
-- [x] Usage: `@template legal-footer`
+- [x] Usage: `@include legal-footer` (template names work with @include)
 - [x] Recursive includes with depth limit (max 10)
 - [ ] Works in header/footer config values too (future enhancement)
 

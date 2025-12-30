@@ -192,8 +192,8 @@ export interface Config {
 	fonts?: FontConfig | string;
 
 	/**
-	 * Named templates for @template directive.
-	 * Maps template names to file paths (absolute paths recommended).
+	 * Named templates for @include.
+	 * Maps template names to file paths.
 	 */
 	templates?: TemplatesConfig;
 

@@ -42,12 +42,14 @@ Becomes:
 
 ### ID Generation Rules
 
+IDs are ASCII-safe for CSS selector compatibility:
+
 - Lowercase
 - Spaces become hyphens
-- Punctuation and symbols removed
-- Unicode letters preserved (ø, ß, 中文, etc.)
+- Unicode transliterated (ø→o, ß→ss, etc.)
+- Punctuation removed
 - Example: `## Warning: Read Carefully` → `#warning-read-carefully`
-- Example: `## Økonomisk Oversikt` → `#økonomisk-oversikt`
+- Example: `## Økonomisk Oversikt` → `#okonomisk-oversikt`
 
 ## Styling in CSS
 
