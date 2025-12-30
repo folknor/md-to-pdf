@@ -57,7 +57,8 @@ async function imageToDataUri(
 async function processImages(text: string, baseDir: string): Promise<string> {
 	const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
 	let result = text;
-	for (const match of text.matchAll(imgRegex)) {
+	let match: RegExpExecArray | null;
+	while ((match = imgRegex.exec(text))) {
 		const [fullMatch, , src] = match;
 		if (!src || src.startsWith("data:") || src.startsWith("http")) continue;
 
