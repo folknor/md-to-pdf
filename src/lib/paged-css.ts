@@ -52,20 +52,81 @@ async function imageToDataUri(
 }
 
 /**
- * Process markdown image syntax and convert to data URI
+ * Scale an SVG by adding width attribute to the root svg element
+ */
+function scaleSvg(svgContent: string, scalePercent: number): string {
+	// Calculate scaled width (relative to a base size of ~60px for header/footer context)
+	const baseSize = 60;
+	const scaledWidth = Math.round(baseSize * (scalePercent / 100));
+
+	// Check if <svg has a width attribute already
+	const svgTagMatch = svgContent.match(/<svg[^>]*>/);
+	if (!svgTagMatch) return svgContent;
+
+	const svgTag = svgTagMatch[0];
+	if (svgTag.includes("width=")) {
+		// Replace existing width on svg element only
+		const newSvgTag = svgTag.replace(/width="[^"]*"/, `width="${scaledWidth}"`);
+		return svgContent.replace(svgTag, newSvgTag);
+	}
+	// Add width to svg element
+	return svgContent.replace("<svg", `<svg width="${scaledWidth}"`);
+}
+
+/**
+ * Process image references and convert to data URI
+ * Supports: "logo.svg" or "logo.svg 80%"
  */
 async function processImages(text: string, baseDir: string): Promise<string> {
-	const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-	let result = text;
-	let match: RegExpExecArray | null;
-	while ((match = imgRegex.exec(text))) {
-		const [fullMatch, , src] = match;
-		if (!src || src.startsWith("data:") || src.startsWith("http")) continue;
+	// Match: filename.ext optionally followed by NN%
+	// Also support markdown syntax: ![alt](src) NN%
+	const patterns = [
+		/!\[([^\]]*)\]\(([^)]+)\)(?:\s*(\d+)%)?/g, // ![alt](src) 80%
+		/([a-zA-Z0-9_\-./]+\.(?:svg|png|jpg|jpeg|gif|webp))(?:\s+(\d+)%)?/gi, // file.svg 80%
+	];
 
-		const dataUri = await imageToDataUri(src, baseDir);
-		if (dataUri) {
-			// Replace markdown image with just the data URI (for CSS content)
-			result = result.replace(fullMatch, `url("${dataUri}")`);
+	let result = text;
+
+	for (const regex of patterns) {
+		let match: RegExpExecArray | null;
+		while ((match = regex.exec(text))) {
+			// Extract src and size based on pattern
+			let src: string | undefined;
+			let sizePercent: string | undefined;
+
+			if (match[0].startsWith("![")) {
+				// Markdown syntax: ![alt](src) NN%
+				src = match[2];
+				sizePercent = match[3];
+			} else {
+				// Simple syntax: file.svg NN%
+				src = match[1];
+				sizePercent = match[2];
+			}
+
+			if (!src || src.startsWith("data:") || src.startsWith("http")) continue;
+
+			const fullPath = resolve(baseDir, src);
+			const ext = extname(fullPath).toLowerCase();
+			const mimeType = MIME_TYPES[ext];
+			if (!mimeType) continue;
+
+			try {
+				let imageData = await fs.readFile(fullPath);
+
+				// For SVG with size specified, scale it
+				if (ext === ".svg" && sizePercent) {
+					let svgContent = imageData.toString("utf-8");
+					svgContent = scaleSvg(svgContent, Number.parseInt(sizePercent, 10));
+					imageData = Buffer.from(svgContent, "utf-8");
+				}
+
+				const base64 = imageData.toString("base64");
+				const dataUri = `data:${mimeType};base64,${base64}`;
+				result = result.replace(match[0], `url("${dataUri}")`);
+			} catch {
+				// File not found, skip
+			}
 		}
 	}
 
@@ -95,15 +156,38 @@ function variablesToCss(text: string): string {
 
 /**
  * Process inline markdown (bold, italic) to CSS-safe text
- * Note: CSS content can't mix styles, so we strip markdown
+ * Returns the text and any detected styles
  */
-function processMarkdown(text: string): string {
-	// For now, strip markdown since CSS content can't handle mixed styles
-	// Could enhance later to detect single-style content
-	return text
+function processMarkdown(text: string): { text: string; styles: string[] } {
+	const styles: string[] = [];
+	const processed = text;
+
+	// Check if entire content is bold: **text**
+	const boldMatch = processed.match(/^\*\*([^*]+)\*\*$/);
+	if (boldMatch?.[1]) {
+		styles.push("font-weight: bold");
+		return { text: boldMatch[1], styles };
+	}
+
+	// Check if entire content is italic: *text*
+	const italicMatch = processed.match(/^\*([^*]+)\*$/);
+	if (italicMatch?.[1]) {
+		styles.push("font-style: italic");
+		return { text: italicMatch[1], styles };
+	}
+
+	// Mixed or no markdown - strip it
+	const stripped = processed
 		.replace(/\*\*([^*]+)\*\*/g, "$1") // **bold** -> bold
 		.replace(/\*([^*]+)\*/g, "$1") // *italic* -> italic
 		.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1"); // [text](url) -> text
+
+	return { text: stripped, styles };
+}
+
+interface ContentResult {
+	content: string;
+	styles: string[];
 }
 
 /**
@@ -112,12 +196,13 @@ function processMarkdown(text: string): string {
 async function buildContentValue(
 	text: string,
 	baseDir: string,
-): Promise<string> {
+): Promise<ContentResult> {
 	// Process images first (converts ![](path) to url("data:..."))
 	let processed = await processImages(text, baseDir);
 
-	// Process markdown (strip for now)
-	processed = processMarkdown(processed);
+	// Process markdown and extract styles
+	const { text: mdProcessed, styles } = processMarkdown(processed);
+	processed = mdProcessed;
 
 	// Convert variables to CSS syntax
 	processed = variablesToCss(processed);
@@ -125,21 +210,23 @@ async function buildContentValue(
 	// If it contains url() from image processing, handle specially
 	if (processed.includes('url("data:')) {
 		// Content with image: url("data:...") " text"
-		return processed;
+		return { content: processed, styles };
 	}
 
 	// If the entire string is already a single quoted value (from date), return as-is
 	// Date values look like "December 30, 2025" - no leading/trailing spaces inside quotes
 	// Variable replacements look like " counter(page) " - with leading/trailing spaces
 	if (/^"[^ ][^"]*[^ ]"$/.test(processed) || /^"[^"]{1}"$/.test(processed)) {
-		return processed;
+		return { content: processed, styles };
 	}
 
 	// Wrap in quotes for CSS content, clean up empty quotes
-	return `"${processed}"`
+	const content = `"${processed}"`
 		.replace(/"" /g, "")
 		.replace(/ ""/g, "")
 		.replace(/^""$/, '""');
+
+	return { content, styles };
 }
 
 /**
@@ -266,6 +353,31 @@ function processTextForHtml(text: string): string {
 }
 
 /**
+ * Transform simple CSS selectors to paged.js margin box selectors
+ * .header-left { color: red } → .pagedjs_page .pagedjs_margin-top-left { color: red }
+ */
+function transformCssSelectors(css: string): string {
+	const selectorMap: Record<string, string> = {
+		".header-left": ".pagedjs_page .pagedjs_margin-top-left",
+		".header-center": ".pagedjs_page .pagedjs_margin-top-center",
+		".header-right": ".pagedjs_page .pagedjs_margin-top-right",
+		".footer-left": ".pagedjs_page .pagedjs_margin-bottom-left",
+		".footer-center": ".pagedjs_page .pagedjs_margin-bottom-center",
+		".footer-right": ".pagedjs_page .pagedjs_margin-bottom-right",
+	};
+
+	let transformed = css;
+	for (const [selector, pagedSelector] of Object.entries(selectorMap)) {
+		// Match: .header-left { ... }
+		const regex = new RegExp(`\\${selector}\\s*\\{([^}]+)\\}`, "g");
+		transformed = transformed.replace(regex, (_, content) => {
+			return `${pagedSelector} {${content}}`;
+		});
+	}
+	return transformed;
+}
+
+/**
  * Generate CSS @page rules from simplified config
  */
 export async function generatePagedCss(
@@ -273,43 +385,46 @@ export async function generatePagedCss(
 	themeCss: string,
 	baseDir: string,
 ): Promise<string> {
+	// Transform simple selectors to @page rules
+	const processedCss = transformCssSelectors(themeCss);
+
 	const header = normalizeToColumns(config.header);
 	const footer = normalizeToColumns(config.footer);
 
 	const marginRules: string[] = [];
 
+	// Helper to build margin rule with optional extra styles
+	const addMarginRule = async (position: string, text: string) => {
+		const { content, styles } = await buildContentValue(text, baseDir);
+		const extraStyles = styles.length > 0 ? styles.join("; ") + "; " : "";
+		marginRules.push(`@${position} { ${extraStyles}content: ${content}; }`);
+	};
+
 	// Header positions
-	if (header.left) {
-		const content = await buildContentValue(header.left, baseDir);
-		marginRules.push(`@top-left { content: ${content}; }`);
-	}
-	if (header.center) {
-		const content = await buildContentValue(header.center, baseDir);
-		marginRules.push(`@top-center { content: ${content}; }`);
-	}
-	if (header.right) {
-		const content = await buildContentValue(header.right, baseDir);
-		marginRules.push(`@top-right { content: ${content}; }`);
-	}
+	if (header.left) await addMarginRule("top-left", header.left);
+	if (header.center) await addMarginRule("top-center", header.center);
+	if (header.right) await addMarginRule("top-right", header.right);
 
 	// Footer positions
-	if (footer.left) {
-		const content = await buildContentValue(footer.left, baseDir);
-		marginRules.push(`@bottom-left { content: ${content}; }`);
-	}
-	if (footer.center) {
-		const content = await buildContentValue(footer.center, baseDir);
-		marginRules.push(`@bottom-center { content: ${content}; }`);
-	}
-	if (footer.right) {
-		const content = await buildContentValue(footer.right, baseDir);
-		marginRules.push(`@bottom-right { content: ${content}; }`);
-	}
+	if (footer.left) await addMarginRule("bottom-left", footer.left);
+	if (footer.center) await addMarginRule("bottom-center", footer.center);
+	if (footer.right) await addMarginRule("bottom-right", footer.right);
+
+	// Common margin box styling
+	const marginStyle = `
+    font-family: var(--font-body, system-ui, sans-serif);
+    font-size: calc(var(--font-size, 12pt) * 0.7);
+    color: var(--color-text, #333);`;
+
+	// Add styling to each margin rule
+	const styledMarginRules = marginRules.map((rule) =>
+		rule.replace("{ content:", `{${marginStyle}\n    content:`),
+	);
 
 	// Build the CSS
 	const css = `
 /* Theme CSS */
-${themeCss}
+${processedCss}
 
 /* String-set for running headers */
 h1 { string-set: doctitle content(text); }
@@ -320,7 +435,7 @@ h2 { string-set: chaptertitle content(text); }
   size: A4;
   margin: 25mm 20mm;
 
-  ${marginRules.join("\n  ")}
+  ${styledMarginRules.join("\n  ")}
 }
 
 /* First page exceptions */
@@ -344,16 +459,6 @@ ${
   @bottom-right { content: none; }
 }`
 		: ""
-}
-
-/* Margin box styling */
-@page {
-  @top-left, @top-center, @top-right,
-  @bottom-left, @bottom-center, @bottom-right {
-    font-family: var(--font-body, system-ui, sans-serif);
-    font-size: calc(var(--font-size, 12pt) * 0.7);
-    color: var(--color-text, #333);
-  }
 }
 `;
 

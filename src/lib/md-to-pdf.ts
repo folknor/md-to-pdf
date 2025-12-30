@@ -86,6 +86,15 @@ export const convertMdToPdf = async (
 		}
 	}
 
+	// Resolve relative stylesheet paths from front-matter
+	if (frontMatterConfig.stylesheet && "path" in input) {
+		config.stylesheet = config.stylesheet.map((s) =>
+			typeof s === "string" && !s.startsWith("/") && !s.includes("\n")
+				? resolve(baseDir, s)
+				: s,
+		);
+	}
+
 	// Auto-detect stylesheet if not specified
 	if (config.stylesheet.length === 0 && "path" in input) {
 		const mdBasename = basename(input.path, ".md");
