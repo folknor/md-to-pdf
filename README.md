@@ -203,8 +203,10 @@ Common locales: `en-US`, `en-GB`, `nb-NO`, `de-DE`, `fr-FR`, `es-ES`, `ja-JP`, `
 
 ```yaml
 header:
-  left: "![Logo](logo.png)"
+  left: logo.png
   right: "Page {page}"
+footer:
+  right: logo.svg 60%   # Scale to 60% (100% ≈ 60px)
 ```
 
 Images are embedded as base64 data URIs. Supported: PNG, JPG, GIF, SVG, WebP.
@@ -235,6 +237,17 @@ footer:
   center: "Page {page}"
   firstPage: false
 ```
+
+### Styling with CSS
+
+Use simple selectors to style header/footer positions:
+
+```css
+.header-left { color: red; }
+.footer-center { font-style: italic; }
+```
+
+Available selectors: `.header-left`, `.header-center`, `.header-right`, `.footer-left`, `.footer-center`, `.footer-right`
 
 ## Table of Contents
 
