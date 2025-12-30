@@ -9,8 +9,6 @@
    ========================================================================== */
 
 :root {
-	--font-body: "Noto Sans", "Segoe UI", system-ui, sans-serif;
-	--font-mono: "Fira Code", "Consolas", "Monaco", monospace;
 	--font-size: 11pt;
 	--line-height: 1.6;
 

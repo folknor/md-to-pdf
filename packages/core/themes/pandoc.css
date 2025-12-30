@@ -9,9 +9,6 @@
    ========================================================================== */
 
 :root {
-	--font-body:
-		Georgia, Palatino, "Palatino Linotype", Times, "Times New Roman", serif;
-	--font-mono: Menlo, Monaco, Consolas, "Courier New", monospace;
 	--font-size: 12pt;
 	--line-height: 1.7;
 

@@ -9,10 +9,6 @@
    ========================================================================== */
 
 :root {
-	--font-body: Georgia, "Times New Roman", serif;
-	--font-heading:
-		"Helvetica Neue", Helvetica, "Liberation Sans", Arial, sans-serif;
-	--font-mono: "Courier New", Courier, monospace;
 	--font-size: 12pt;
 	--line-height: 1.6;
 

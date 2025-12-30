@@ -7,14 +7,17 @@
 	"types": "dist/index.d.ts",
 	"files": [
 		"/dist",
-		"/themes"
+		"/themes",
+		"/src/data"
 	],
 	"scripts": {
 		"dev": "tsc --watch",
+		"prebuild": "node scripts/generate-google-fonts-list.js",
 		"build": "tsc",
 		"clean": "rm -rf dist"
 	},
 	"dependencies": {
+		"font-list": "^2.0.1",
 		"github-slugger": "^2.0.0",
 		"highlight.js": "^11.11.1",
 		"marked": "^17.0.1",
@@ -30,6 +33,7 @@
 	},
 	"devDependencies": {
 		"@types/linkify-it": "^5.0.0",
+		"google-font-metadata": "^6.0.7",
 		"typescript": "5.9.3"
 	},
 	"license": "MIT"
