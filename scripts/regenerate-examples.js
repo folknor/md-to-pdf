@@ -1,26 +1,32 @@
 #!/usr/bin/env node
 
 import { promises as fs } from 'fs';
-import { basename, join, resolve } from 'path';
+import { join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 
 const __dirname = resolve(fileURLToPath(import.meta.url), '..');
 const examplesDir = join(__dirname, '..', 'examples');
-const cliPath = join(__dirname, '..', 'dist', 'cli.js');
+const cliPath = join(__dirname, '..', 'packages', 'cli', 'dist', 'cli.js');
 
 /**
  * Get all markdown files in an example directory.
- * Returns array of { input, output } paths.
+ * Returns array of { input, output, configFile } paths.
  */
 async function getMarkdownFiles(examplePath) {
 	const entries = await fs.readdir(examplePath, { withFileTypes: true });
+
+	// Check for config.yaml in this example directory
+	const hasConfig = entries.some(e => e.isFile() && e.name === 'config.yaml');
+	const configFile = hasConfig ? join(examplePath, 'config.yaml') : null;
+
 	const mdFiles = entries
 		.filter(e => e.isFile() && e.name.endsWith('.md'))
 		.map(e => ({
 			input: join(examplePath, e.name),
 			output: join(examplePath, e.name.replace(/\.md$/, '.pdf')),
 			name: e.name,
+			configFile,
 		}));
 	return mdFiles;
 }
@@ -62,16 +68,32 @@ async function regenerateExamples() {
 
 			console.log(`${dir}/`);
 
-			for (const { input, output, name } of mdFiles) {
+			for (const { input, output, name, configFile } of mdFiles) {
 				try {
-					execSync(`node "${cliPath}" "${input}" -o "${output}"`, {
-						stdio: 'pipe',
-					});
-					console.log(`  ✓ ${name}`);
+					const configArg = configFile ? `--config-file "${configFile}"` : '';
+					const result = execSync(
+						`node "${cliPath}" ${configArg} "${input}" -o "${output}"`,
+						{ encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+					);
+					// Print CLI output (skip the "generating" lines, show the info)
+					const lines = result.split('\n').filter(line =>
+						line.trim() && !line.includes('[started]') && !line.includes('[completed]')
+					);
+					for (const line of lines) {
+						console.log(`  ${line.trim()}`);
+					}
+					if (lines.length === 0) {
+						console.log(`  ✓ ${name}`);
+					}
 					totalGenerated++;
 				} catch (error) {
 					console.error(`  ✗ Failed: ${name}`);
-					console.error(`    ${error.message}`);
+					if (error.stderr) {
+						console.error(`    ${error.stderr.toString().trim()}`);
+					}
+					if (error.stdout) {
+						console.error(`    ${error.stdout.toString().trim()}`);
+					}
 					process.exit(1);
 				}
 			}
