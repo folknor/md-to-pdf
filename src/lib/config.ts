@@ -162,20 +162,13 @@ export interface Config {
 	footer?: HeaderFooterValue;
 
 	/**
-	 * Use paged.js for header/footer rendering instead of Puppeteer's native headers.
-	 * Enables advanced features like running headers (chapter titles) and page exceptions.
-	 * Default: false
-	 */
-	paged_js?: boolean;
-
-	/**
-	 * Show header on first page. Only applies when paged_js is enabled.
+	 * Show header on first page when using simplified header/footer config.
 	 * Default: true
 	 */
 	firstPageHeader?: boolean;
 
 	/**
-	 * Show footer on first page. Only applies when paged_js is enabled.
+	 * Show footer on first page when using simplified header/footer config.
 	 * Default: true
 	 */
 	firstPageFooter?: boolean;

@@ -28,7 +28,6 @@ const CONFIG_SCHEMA: Record<string, { type: string; values?: readonly string[] }
 	toc_options: { type: "object" },
 	header: { type: "string|object" },
 	footer: { type: "string|object" },
-	paged_js: { type: "boolean" },
 	firstPageHeader: { type: "boolean" },
 	firstPageFooter: { type: "boolean" },
 	outline: { type: "boolean" },
