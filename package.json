@@ -19,7 +19,8 @@
 		"clean": "rm -rf dist",
 		"deploy": "pnpm run clean && pnpm run build",
 		"lint": "pnpm exec biome check",
-		"check": "pnpm exec biome check"
+		"check": "pnpm exec biome check",
+		"regenerate-examples": "node scripts/regenerate-examples.js"
 	},
 	"bin": {
 		"md-to-pdf": "dist/cli.js",

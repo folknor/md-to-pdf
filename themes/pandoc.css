@@ -61,6 +61,7 @@ h6 {
 	line-height: 1.25;
 	margin-top: 1.5em;
 	margin-bottom: 0.5em;
+	page-break-after: avoid;
 }
 
 h4,
@@ -341,39 +342,26 @@ abbr[title] {
 }
 
 /* ==========================================================================
-   11. Print
+   11. Page Breaks
    ========================================================================== */
 
-@media print {
-	h1,
-	h2,
-	h3,
-	h4,
-	h5,
-	h6 {
-		page-break-after: avoid;
-	}
+pre,
+blockquote,
+table,
+figure,
+img,
+tr {
+	page-break-inside: avoid;
+}
 
-	pre,
-	blockquote,
-	table,
-	figure,
-	img,
-	tr {
-		page-break-inside: avoid;
-	}
+/* Keep table headers with content */
+thead {
+	display: table-header-group;
+}
 
-	p,
-	h2,
-	h3 {
-		orphans: 3;
-		widows: 3;
-	}
-
-	/* Show URLs after links when print_urls is enabled */
-	.print-urls a[href^="http"]:after {
-		content: " (" attr(href) ")";
-		font-size: 85%;
-		color: var(--color-text-muted);
-	}
+p,
+h2,
+h3 {
+	orphans: 3;
+	widows: 3;
 }

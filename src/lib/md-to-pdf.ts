@@ -127,9 +127,15 @@ export const convertMdToPdf = async (
 		config.stylesheet = [themeStylesheet, ...config.stylesheet];
 	}
 
-	// add print-urls body class if enabled
+	// add print-urls body class and CSS if enabled
 	if (config.print_urls) {
 		config.body_class = [...config.body_class, "print-urls"];
+		const printUrlsCss = `.print-urls a[href^="http"]:after {
+	content: " (" attr(href) ")";
+	font-size: 85%;
+	color: var(--color-text-muted, #666);
+}`;
+		config.stylesheet = [...config.stylesheet, printUrlsCss];
 	}
 
 	// Process simplified header/footer config
