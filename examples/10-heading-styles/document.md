@@ -44,8 +44,10 @@ Becomes:
 
 - Lowercase
 - Spaces become hyphens
-- Special characters removed
-- Example: `## Warning: Read Carefully` becomes `#warning-read-carefully`
+- Punctuation and symbols removed
+- Unicode letters preserved (ø, ß, 中文, etc.)
+- Example: `## Warning: Read Carefully` → `#warning-read-carefully`
+- Example: `## Økonomisk Oversikt` → `#økonomisk-oversikt`
 
 ## Styling in CSS
 
