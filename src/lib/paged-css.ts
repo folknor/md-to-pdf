@@ -167,6 +167,108 @@ export interface PagedCssConfig {
 }
 
 /**
+ * Check if header/footer config uses background images
+ * (requires Puppeteer templates instead of paged.js)
+ */
+export function hasBackground(config: PagedCssConfig): boolean {
+	const header = normalizeToColumns(config.header);
+	const footer = normalizeToColumns(config.footer);
+	return !!(header.background || footer.background);
+}
+
+/**
+ * Build a Puppeteer header/footer template HTML
+ */
+export async function buildPuppeteerTemplate(
+	value: HeaderFooterValue | undefined,
+	type: "header" | "footer",
+	baseDir: string,
+): Promise<string> {
+	const columns = normalizeToColumns(value);
+
+	// Build content for each column
+	const left = columns.left ? processTextForHtml(columns.left) : "";
+	const center = columns.center ? processTextForHtml(columns.center) : "";
+	const right = columns.right ? processTextForHtml(columns.right) : "";
+
+	// Build background CSS if specified
+	let backgroundCss = "";
+	if (columns.background) {
+		const dataUri = await imageToDataUri(columns.background, baseDir);
+		if (dataUri) {
+			// Header backgrounds anchor to bottom, footer to top
+			const position = type === "header" ? "bottom" : "top";
+			backgroundCss = `
+				background-image: url('${dataUri}');
+				background-size: cover;
+				background-repeat: no-repeat;
+				background-position: ${position};
+				background-origin: border-box;
+			`;
+		}
+	}
+
+	// IMPORTANT: Use unique class names for header vs footer templates.
+	// Puppeteer appears to cache/conflate CSS when both templates use the same
+	// class name, causing both header and footer to render the same background.
+	// Using unique class names (hf-header-container vs hf-footer-container) fixes this.
+	const containerClass = `hf-${type}-container`;
+
+	return `<html>
+<head>
+	<style type="text/css">
+		#header, #footer { padding: 0 !important; }
+		.${containerClass} {
+			width: 100%;
+			padding: 12px 24px;
+			-webkit-print-color-adjust: exact;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			font-family: Georgia, serif;
+			font-size: 10px;
+			line-height: 1.2;
+			color: #333;
+			min-height: 24px;
+			${backgroundCss}
+		}
+		.hf-left { text-align: left; flex: 1; }
+		.hf-center { text-align: center; flex: 1; }
+		.hf-right { text-align: right; flex: 1; }
+	</style>
+</head>
+<body>
+	<div class="${containerClass}">
+		<span class="hf-left">${left}</span>
+		<span class="hf-center">${center}</span>
+		<span class="hf-right">${right}</span>
+	</div>
+</body>
+</html>`;
+}
+
+/**
+ * Process text for HTML template (variables and markdown)
+ */
+function processTextForHtml(text: string): string {
+	return (
+		text
+			// Page variables → Puppeteer special classes
+			.replace(/\{page\}/g, '<span class="pageNumber"></span>')
+			.replace(/\{pages\}/g, '<span class="totalPages"></span>')
+			// Date → current date string
+			.replace(/\{date:([^}]+)\}/g, (_, locale) => formatDate(locale))
+			.replace(/\{date\}/g, formatDate())
+			// Title/URL → Puppeteer special classes
+			.replace(/\{title\}/g, '<span class="title"></span>')
+			.replace(/\{url\}/g, '<span class="url"></span>')
+			// Simple markdown
+			.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+			.replace(/\*([^*]+)\*/g, "<em>$1</em>")
+	);
+}
+
+/**
  * Generate CSS @page rules from simplified config
  */
 export async function generatePagedCss(

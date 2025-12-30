@@ -13,6 +13,7 @@ export interface HeaderFooterColumn {
 	left?: string;
 	center?: string;
 	right?: string;
+	background?: string; // @file reference to image (SVG, PNG, etc.)
 }
 
 export type HeaderFooterValue = string | HeaderFooterColumn;

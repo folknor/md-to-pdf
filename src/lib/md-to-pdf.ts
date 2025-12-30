@@ -5,7 +5,11 @@ import type { Browser } from "puppeteer";
 import { type Config, themes, themesDir } from "./config.js";
 import { generateOutput } from "./generate-output.js";
 import { getHtml } from "./markdown.js";
-import { generatePagedCss } from "./paged-css.js";
+import {
+	buildPuppeteerTemplate,
+	generatePagedCss,
+	hasBackground,
+} from "./paged-css.js";
 import {
 	extractFirstHeading,
 	getMarginObject,
@@ -99,62 +103,85 @@ export const convertMdToPdf = async (
 		config.body_class = [...config.body_class, "print-urls"];
 	}
 
-	// Process simplified header/footer config using paged.js
+	// Process simplified header/footer config
 	if (config.header || config.footer) {
-		// Collect all CSS for header/footer styling
-		const cssContents: string[] = [];
-		for (const stylesheet of config.stylesheet) {
-			// Skip highlight.js stylesheets
-			if (stylesheet.includes("highlight.js")) continue;
-
-			// If it's already CSS content (from @file), use directly
-			if (stylesheet.includes("\n") || stylesheet.includes("{")) {
-				cssContents.push(stylesheet);
-			} else {
-				// Try to read the file
-				try {
-					const css = await fs.readFile(stylesheet, "utf-8");
-					cssContents.push(css);
-				} catch {
-					// File not readable, skip
-				}
-			}
-		}
-		const allCss = cssContents.join("\n\n");
-
-		// Generate CSS @page rules for paged.js
-		const pagedCss = await generatePagedCss(
-			{
-				header: config.header,
-				footer: config.footer,
-				firstPageHeader: config.firstPageHeader,
-				firstPageFooter: config.firstPageFooter,
-			},
-			allCss,
-			baseDir,
-		);
-
-		// Add paged CSS to stylesheets
-		config.stylesheet = [...config.stylesheet, pagedCss];
-
-		// Add paged.js script if not already present
-		const hasPagedJs = config.script.some(
-			(s) => s.url?.includes("pagedjs") || s.path?.includes("pagedjs"),
-		);
-		if (!hasPagedJs) {
-			config.script = [...config.script, { path: PAGED_JS_PATH }];
-		}
-
-		// Paged.js handles margins, set Puppeteer margins to 0
-		config.pdf_options.margin = {
-			top: "0mm",
-			right: "0mm",
-			bottom: "0mm",
-			left: "0mm",
+		const headerFooterConfig = {
+			header: config.header,
+			footer: config.footer,
+			firstPageHeader: config.firstPageHeader,
+			firstPageFooter: config.firstPageFooter,
 		};
 
-		// Disable Puppeteer's displayHeaderFooter (paged.js renders in content)
-		config.pdf_options.displayHeaderFooter = false;
+		// Check if backgrounds are used (requires Puppeteer templates)
+		if (hasBackground(headerFooterConfig)) {
+			// Use Puppeteer's native header/footer templates for backgrounds
+			if (config.header) {
+				config.pdf_options.headerTemplate = await buildPuppeteerTemplate(
+					config.header,
+					"header",
+					baseDir,
+				);
+			}
+			if (config.footer) {
+				config.pdf_options.footerTemplate = await buildPuppeteerTemplate(
+					config.footer,
+					"footer",
+					baseDir,
+				);
+			}
+			config.pdf_options.displayHeaderFooter = true;
+		} else {
+			// Use paged.js for text-only headers/footers
+			// Collect all CSS for header/footer styling
+			const cssContents: string[] = [];
+			for (const stylesheet of config.stylesheet) {
+				// Skip highlight.js stylesheets
+				if (stylesheet.includes("highlight.js")) continue;
+
+				// If it's already CSS content (from @file), use directly
+				if (stylesheet.includes("\n") || stylesheet.includes("{")) {
+					cssContents.push(stylesheet);
+				} else {
+					// Try to read the file
+					try {
+						const css = await fs.readFile(stylesheet, "utf-8");
+						cssContents.push(css);
+					} catch {
+						// File not readable, skip
+					}
+				}
+			}
+			const allCss = cssContents.join("\n\n");
+
+			// Generate CSS @page rules for paged.js
+			const pagedCss = await generatePagedCss(
+				headerFooterConfig,
+				allCss,
+				baseDir,
+			);
+
+			// Add paged CSS to stylesheets
+			config.stylesheet = [...config.stylesheet, pagedCss];
+
+			// Add paged.js script if not already present
+			const hasPagedJs = config.script.some(
+				(s) => s.url?.includes("pagedjs") || s.path?.includes("pagedjs"),
+			);
+			if (!hasPagedJs) {
+				config.script = [...config.script, { path: PAGED_JS_PATH }];
+			}
+
+			// Paged.js handles margins, set Puppeteer margins to 0
+			config.pdf_options.margin = {
+				top: "0mm",
+				right: "0mm",
+				bottom: "0mm",
+				left: "0mm",
+			};
+
+			// Disable Puppeteer's displayHeaderFooter (paged.js renders in content)
+			config.pdf_options.displayHeaderFooter = false;
+		}
 	}
 
 	// Auto-enable displayHeaderFooter if raw templates are set via pdf_options
