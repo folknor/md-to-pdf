@@ -53,16 +53,28 @@ Paths are resolved relative to the config file location.
 
 ### Front-matter
 
+All config options can be set directly in the markdown file's front-matter:
+
 ```markdown
 ---
-theme: pandoc
-footer: "Page {page} of {pages}"
+theme: tufte
+stylesheet: custom.css
+header:
+  left: "{title}"
+  right: "{date}"
+footer:
+  center: Page {page}/{pages}
+pdf_options:
+  format: Letter
+  margin: 25mm
 ---
 
 # Document Title
 
 Content here.
 ```
+
+Front-matter can completely replace a config file—both methods produce the same result.
 
 ## All Defaults
 

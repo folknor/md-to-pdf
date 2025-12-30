@@ -1,0 +1,14 @@
+# Example config file
+# All these settings can also be set in front-matter
+
+theme: tufte
+
+header:
+  right: Page {page}/{pages}
+
+footer:
+  center: Config File Example
+
+pdf_options:
+  format: A4
+  margin: 25mm

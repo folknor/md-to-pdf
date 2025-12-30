@@ -22,6 +22,7 @@ import { formatValidationErrors, validateConfig } from "./validate-config.js";
 const require = createRequire(import.meta.url);
 const PAGED_JS_PATH = resolve(
 	dirname(require.resolve("pagedjs")),
+	"..",
 	"dist",
 	"paged.polyfill.js",
 );
