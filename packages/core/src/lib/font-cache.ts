@@ -91,7 +91,7 @@ async function ensureCacheDir(): Promise<void> {
  * Generate cache key for a font request
  */
 function getCacheKey(fontNames: string[], weights: number[]): string {
-	const input = fontNames.sort().join(",") + ":" + weights.sort().join(",");
+	const input = `${fontNames.sort().join(",")}:${weights.sort().join(",")}`;
 	return createHash("md5").update(input).digest("hex");
 }
 
@@ -165,7 +165,9 @@ async function fetchAndEmbedFonts(
 		});
 
 		if (!response.ok) {
-			warnings.push(`Failed to fetch fonts "${fontNames.join(", ")}" from Google Fonts: ${response.status} ${response.statusText}`);
+			warnings.push(
+				`Failed to fetch fonts "${fontNames.join(", ")}" from Google Fonts: ${response.status} ${response.statusText}`,
+			);
 			return { css: null, warnings };
 		}
 
@@ -202,7 +204,9 @@ async function fetchAndEmbedFonts(
 		return { css, warnings };
 	} catch (error) {
 		const err = error as Error;
-		warnings.push(`Failed to fetch fonts "${fontNames.join(", ")}" from Google Fonts: ${err.message}`);
+		warnings.push(
+			`Failed to fetch fonts "${fontNames.join(", ")}" from Google Fonts: ${err.message}`,
+		);
 		return { css: null, warnings };
 	}
 }

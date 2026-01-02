@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
-import { promises as fs } from 'fs';
-import { join, resolve } from 'path';
-import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execSync } from "node:child_process";
+import { promises as fs } from "node:fs";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const __dirname = resolve(fileURLToPath(import.meta.url), '..');
-const examplesDir = join(__dirname, '..', 'examples');
-const cliPath = join(__dirname, '..', 'packages', 'cli', 'dist', 'cli.js');
+const __dirname = resolve(fileURLToPath(import.meta.url), "..");
+const examplesDir = join(__dirname, "..", "examples");
+const cliPath = join(__dirname, "..", "packages", "cli", "dist", "cli.js");
 
 /**
  * Get all markdown files in an example directory.
@@ -17,14 +17,14 @@ async function getMarkdownFiles(examplePath) {
 	const entries = await fs.readdir(examplePath, { withFileTypes: true });
 
 	// Check for config.yaml in this example directory
-	const hasConfig = entries.some(e => e.isFile() && e.name === 'config.yaml');
-	const configFile = hasConfig ? join(examplePath, 'config.yaml') : null;
+	const hasConfig = entries.some((e) => e.isFile() && e.name === "config.yaml");
+	const configFile = hasConfig ? join(examplePath, "config.yaml") : null;
 
 	const mdFiles = entries
-		.filter(e => e.isFile() && e.name.endsWith('.md'))
-		.map(e => ({
+		.filter((e) => e.isFile() && e.name.endsWith(".md"))
+		.map((e) => ({
 			input: join(examplePath, e.name),
-			output: join(examplePath, e.name.replace(/\.md$/, '.pdf')),
+			output: join(examplePath, e.name.replace(/\.md$/, ".pdf")),
 			name: e.name,
 			configFile,
 		}));
@@ -38,16 +38,18 @@ async function regenerateExamples() {
 		// Read all directories in examples
 		const entries = await fs.readdir(examplesDir, { withFileTypes: true });
 		let exampleDirs = entries
-			.filter(e => e.isDirectory())
-			.map(e => e.name)
+			.filter((e) => e.isDirectory())
+			.map((e) => e.name)
 			.sort();
 
 		// Filter to single example if specified
 		if (filterExample) {
-			const match = exampleDirs.find(d => d === filterExample || d.startsWith(filterExample));
+			const match = exampleDirs.find(
+				(d) => d === filterExample || d.startsWith(filterExample),
+			);
 			if (!match) {
 				console.error(`Example "${filterExample}" not found`);
-				console.error(`Available: ${exampleDirs.join(', ')}`);
+				console.error(`Available: ${exampleDirs.join(", ")}`);
 				process.exit(1);
 			}
 			exampleDirs = [match];
@@ -71,15 +73,20 @@ async function regenerateExamples() {
 
 			for (const { input, output, name, configFile } of mdFiles) {
 				try {
-					const configArg = configFile ? `--config-file "${configFile}"` : '';
+					const configArg = configFile ? `--config-file "${configFile}"` : "";
 					const result = execSync(
 						`node "${cliPath}" ${configArg} "${input}" -o "${output}"`,
-						{ encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
+						{ encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
 					);
 					// Print CLI output (skip the "generating" lines, show the info)
-					const lines = result.split('\n').filter(line =>
-						line.trim() && !line.includes('[started]') && !line.includes('[completed]')
-					);
+					const lines = result
+						.split("\n")
+						.filter(
+							(line) =>
+								line.trim() &&
+								!line.includes("[started]") &&
+								!line.includes("[completed]"),
+						);
 					for (const line of lines) {
 						console.log(`  ${line.trim()}`);
 					}
@@ -90,7 +97,8 @@ async function regenerateExamples() {
 				} catch (error) {
 					totalFailed++;
 					// Extract error message (format: "[time] → Error message") - may be in stdout or stderr
-					const output = (error.stdout?.toString() || '') + (error.stderr?.toString() || '');
+					const output =
+						(error.stdout?.toString() || "") + (error.stderr?.toString() || "");
 					const errorMatch = output.match(/\] → (.+)/);
 					if (errorMatch) {
 						console.log(`  ✗ ${name}: ${errorMatch[1]}`);
@@ -100,12 +108,14 @@ async function regenerateExamples() {
 				}
 			}
 
-			console.log('');
+			console.log("");
 		}
 
-		console.log(`Done! Generated ${totalGenerated} PDF(s), ${totalFailed} failed.`);
+		console.log(
+			`Done! Generated ${totalGenerated} PDF(s), ${totalFailed} failed.`,
+		);
 	} catch (error) {
-		console.error('Error:', error.message);
+		console.error("Error:", error.message);
 		process.exit(1);
 	}
 }

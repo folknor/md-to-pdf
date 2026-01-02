@@ -9,13 +9,13 @@ let mainWindow: BrowserWindow | null = null;
 function createWindow(): void {
 	mainWindow = new BrowserWindow({
 		width: 800,
-		height: 700,
+		height: 900,
 		minWidth: 600,
 		minHeight: 500,
 		show: false,
 		autoHideMenuBar: true,
 		webPreferences: {
-			preload: join(__dirname, "../preload/index.js"),
+			preload: join(__dirname, "../preload/index.mjs"),
 			sandbox: false,
 		},
 	});

@@ -24,7 +24,10 @@ export interface CssError {
  * - Property values (invalid values pass)
  * - Selectors (invalid selectors pass)
  */
-export function validateCss(css: string, filename?: string): CssValidationResult {
+export function validateCss(
+	css: string,
+	filename?: string,
+): CssValidationResult {
 	const errors: CssError[] = [];
 
 	try {

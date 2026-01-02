@@ -1,12 +1,11 @@
+import type { Theme } from "@mdforge/core";
+
 export interface ConversionConfig {
-	theme?: string;
+	theme?: Theme;
 	fontPairing?: string;
-	metadata?: {
-		author?: string;
-		title?: string;
-	};
+	author?: string;
 	outputDir: string;
-	outputPath: string;
+	outputPath?: string;
 }
 
 export interface ConversionResult {
@@ -14,14 +13,6 @@ export interface ConversionResult {
 	inputPath: string;
 	outputPath: string;
 	error?: string;
-}
-
-export interface UserPreferences {
-	defaultTheme: string;
-	defaultFontPairing: string;
-	defaultAuthor: string;
-	lastOutputDir: string;
-	rememberLastDir: boolean;
 }
 
 export interface ConversionProgress {
@@ -38,12 +29,7 @@ export interface ElectronAPI {
 
 	// File dialogs
 	selectFiles: () => Promise<string[]>;
-	selectFolder: () => Promise<string | null>;
 	selectOutputDir: () => Promise<string | null>;
-
-	// Preferences
-	getPreferences: () => Promise<UserPreferences>;
-	setPreferences: (prefs: Partial<UserPreferences>) => Promise<void>;
 
 	// Events
 	onConversionProgress: (

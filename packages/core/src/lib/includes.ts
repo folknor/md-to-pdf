@@ -91,9 +91,9 @@ export async function processIncludes(
 
 		// Check if it's a template name first
 		let includePath = includeArg;
-		let includeBaseDir = baseDir;
+		const includeBaseDir = baseDir;
 
-		if (templates && templates[includeArg]) {
+		if (templates?.[includeArg]) {
 			includePath = templates[includeArg];
 			// Template paths are relative to config file (baseDir)
 		}

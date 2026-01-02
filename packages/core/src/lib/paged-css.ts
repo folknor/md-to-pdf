@@ -151,7 +151,6 @@ function formatToCssCounterStyle(format?: PageNumberFormat): string {
 			return "lower-alpha";
 		case "alpha-upper":
 			return "upper-alpha";
-		case "arabic":
 		default:
 			return "decimal";
 	}

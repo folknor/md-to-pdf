@@ -50,16 +50,6 @@ export default function DropZone({ onFilesAdded }: DropZoneProps) {
 		}
 	};
 
-	const handleSelectFolder = async () => {
-		const folder = await window.electron.selectFolder();
-		if (folder) {
-			// In a real implementation, we'd scan for .md files in the folder
-			// For now, just show the folder selection worked
-			// This would need backend support to scan directory
-			console.log("Selected folder:", folder);
-		}
-	};
-
 	return (
 		<section
 			aria-label="File drop zone"
@@ -90,22 +80,13 @@ export default function DropZone({ onFilesAdded }: DropZoneProps) {
 				<p className="text-sm text-gray-500 mt-1">or</p>
 			</div>
 
-			<div className="flex gap-3 justify-center">
-				<button
-					type="button"
-					onClick={handleSelectFiles}
-					className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-				>
-					Select Files
-				</button>
-				<button
-					type="button"
-					onClick={handleSelectFolder}
-					className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-				>
-					Select Folder
-				</button>
-			</div>
+			<button
+				type="button"
+				onClick={handleSelectFiles}
+				className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+			>
+				Select Files
+			</button>
 		</section>
 	);
 }

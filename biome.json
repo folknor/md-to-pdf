@@ -15,7 +15,22 @@
 	"assist": {
 		"enabled": true
 	},
+	"css": {
+		"parser": {
+			"cssModules": true,
+			"tailwindDirectives": true
+		}
+	},
 	"files": {
-		"includes": ["**", "!**/*.generated.js", "!!**/dist"]
+		"includes": [
+			"**",
+			"!**/*.generated.js",
+			"!**/out",
+			"!**/dist",
+			"!tests/**/*.css",
+			"!examples/**/*.css",
+			"!.claude",
+			"!packages/core/src/data/*.json"
+		]
 	}
 }

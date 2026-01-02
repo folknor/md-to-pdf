@@ -7,13 +7,12 @@ import {
 	type ConversionInfo,
 	createConversionInfo,
 } from "./conversion-info.js";
-import { validateCss, formatCssErrors } from "./css-validator.js";
+import { formatCssErrors, validateCss } from "./css-validator.js";
 import { ConfigError, GenerationError, IncludeError } from "./errors.js";
 import { generateFontStylesheet } from "./fonts.js";
 import { generateOutput } from "./generate-output.js";
 import { processIcons } from "./icons.js";
 import { processIncludes } from "./includes.js";
-import { processXref } from "./xref.js";
 import { getHtml } from "./markdown.js";
 import {
 	buildPuppeteerTemplate,
@@ -28,6 +27,7 @@ import {
 	resolveFileRefs,
 } from "./util.js";
 import { formatValidationErrors, validateConfig } from "./validate-config.js";
+import { processXref } from "./xref.js";
 
 const require = createRequire(import.meta.url);
 const PAGED_JS_PATH = resolve(
@@ -141,7 +141,10 @@ export const convertMdToPdf = async (
 	} else if (config.stylesheet.length > 0) {
 		// User specified stylesheet
 		const firstStylesheet = config.stylesheet[0];
-		if (typeof firstStylesheet === "string" && !firstStylesheet.includes("\n")) {
+		if (
+			typeof firstStylesheet === "string" &&
+			!firstStylesheet.includes("\n")
+		) {
 			info.stylesheet = { type: "specified", path: basename(firstStylesheet) };
 		}
 	}
@@ -315,7 +318,9 @@ export const convertMdToPdf = async (
 		processedMd = await processIcons(processedMd);
 	} catch (error) {
 		const err = error as Error;
-		info.warnings.push(`Icon processing failed: ${err.message} (continuing with placeholders)`);
+		info.warnings.push(
+			`Icon processing failed: ${err.message} (continuing with placeholders)`,
+		);
 	}
 
 	// Process @see Section Name → [Section Name](#section-name)
@@ -369,9 +374,7 @@ export const convertMdToPdf = async (
 			// Validate inline CSS syntax
 			const result = validateCss(stylesheet);
 			if (!result.valid) {
-				info.warnings.push(
-					...formatCssErrors(result.errors, "inline CSS"),
-				);
+				info.warnings.push(...formatCssErrors(result.errors, "inline CSS"));
 			}
 			validatedStylesheets.push(stylesheet);
 		} else {
@@ -382,7 +385,9 @@ export const convertMdToPdf = async (
 				const css = await fs.readFile(stylesheet, "utf-8");
 				const result = validateCss(css, basename(stylesheet));
 				if (!result.valid) {
-					info.warnings.push(...formatCssErrors(result.errors, basename(stylesheet)));
+					info.warnings.push(
+						...formatCssErrors(result.errors, basename(stylesheet)),
+					);
 				}
 				validatedStylesheets.push(stylesheet);
 			} catch (error) {
@@ -421,7 +426,10 @@ export const convertMdToPdf = async (
 				err,
 			);
 		}
-		throw new GenerationError(`Failed to create ${outputType}: ${err.message}`, err);
+		throw new GenerationError(
+			`Failed to create ${outputType}: ${err.message}`,
+			err,
+		);
 	}
 
 	if (output.filename) {

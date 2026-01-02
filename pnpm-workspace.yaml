@@ -1,7 +1,9 @@
 packages:
-  - "packages/*"
+  - packages/*
 
 onlyBuiltDependencies:
-  - puppeteer
+  - core-js
   - electron
+  - es5-ext
   - esbuild
+  - puppeteer

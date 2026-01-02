@@ -167,7 +167,10 @@ async function resolveFonts(config: FontPairingConfig): Promise<ResolvedFonts> {
 		};
 	}
 
-	const headingResult = await resolveFont(config.heading, config.headingFallback);
+	const headingResult = await resolveFont(
+		config.heading,
+		config.headingFallback,
+	);
 	const bodyResult = await resolveFont(config.body, config.bodyFallback);
 	const monoResult = await resolveFont(config.mono, config.monoFallback);
 
@@ -199,7 +202,9 @@ function generateFontCss(fonts: ResolvedFonts): string {
 	if (fonts.heading || fonts.body || fonts.mono) {
 		lines.push(":root {");
 		if (fonts.heading) {
-			lines.push(`  --font-heading: "${fonts.heading}", system-ui, sans-serif;`);
+			lines.push(
+				`  --font-heading: "${fonts.heading}", system-ui, sans-serif;`,
+			);
 		}
 		if (fonts.body) {
 			lines.push(`  --font-body: "${fonts.body}", system-ui, sans-serif;`);

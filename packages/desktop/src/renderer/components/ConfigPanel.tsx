@@ -1,24 +1,21 @@
-import type { UserPreferences } from "../../types";
-
-// Available themes from @mdforge/core
-const THEMES = ["beryl", "tufte", "buttondown", "pandoc"];
-
-// Available font pairings
-const FONT_PAIRINGS = [
-	{ value: "", label: "Default" },
-	{ value: "inter-source", label: "Inter + Source Code Pro" },
-	{ value: "georgia-mono", label: "Georgia + JetBrains Mono" },
-	{ value: "system", label: "System Fonts" },
-];
+import { fontPairingPresets, type Theme, themes } from "@mdforge/core/browser";
 
 interface ConfigPanelProps {
-	preferences: UserPreferences;
-	onChange: (prefs: Partial<UserPreferences>) => void;
+	theme: Theme;
+	fontPairing: string;
+	author: string;
+	onThemeChange: (theme: Theme) => void;
+	onFontPairingChange: (fontPairing: string) => void;
+	onAuthorChange: (author: string) => void;
 }
 
 export default function ConfigPanel({
-	preferences,
-	onChange,
+	theme,
+	fontPairing,
+	author,
+	onThemeChange,
+	onFontPairingChange,
+	onAuthorChange,
 }: ConfigPanelProps) {
 	return (
 		<div className="mt-6 bg-white rounded-lg shadow p-4">
@@ -34,13 +31,13 @@ export default function ConfigPanel({
 					</label>
 					<select
 						id="theme-select"
-						value={preferences.defaultTheme}
-						onChange={(e) => onChange({ defaultTheme: e.target.value })}
+						value={theme}
+						onChange={(e) => onThemeChange(e.target.value as Theme)}
 						className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 					>
-						{THEMES.map((theme) => (
-							<option key={theme} value={theme}>
-								{theme.charAt(0).toUpperCase() + theme.slice(1)}
+						{themes.map((t) => (
+							<option key={t} value={t}>
+								{t.charAt(0).toUpperCase() + t.slice(1)}
 							</option>
 						))}
 					</select>
@@ -55,13 +52,13 @@ export default function ConfigPanel({
 					</label>
 					<select
 						id="font-pairing-select"
-						value={preferences.defaultFontPairing}
-						onChange={(e) => onChange({ defaultFontPairing: e.target.value })}
+						value={fontPairing}
+						onChange={(e) => onFontPairingChange(e.target.value)}
 						className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 					>
-						{FONT_PAIRINGS.map((fp) => (
-							<option key={fp.value} value={fp.value}>
-								{fp.label}
+						{fontPairingPresets.map((preset) => (
+							<option key={preset.value} value={preset.value}>
+								{preset.label}
 							</option>
 						))}
 					</select>
@@ -72,29 +69,16 @@ export default function ConfigPanel({
 						htmlFor="author-input"
 						className="block text-sm font-medium text-gray-700 mb-1"
 					>
-						Default Author
+						Author
 					</label>
 					<input
 						id="author-input"
 						type="text"
-						value={preferences.defaultAuthor}
-						onChange={(e) => onChange({ defaultAuthor: e.target.value })}
+						value={author}
+						onChange={(e) => onAuthorChange(e.target.value)}
 						placeholder="Your name"
 						className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 					/>
-				</div>
-
-				<div className="flex items-center">
-					<input
-						type="checkbox"
-						id="rememberDir"
-						checked={preferences.rememberLastDir}
-						onChange={(e) => onChange({ rememberLastDir: e.target.checked })}
-						className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
-					/>
-					<label htmlFor="rememberDir" className="ml-2 text-sm text-gray-700">
-						Remember last output folder
-					</label>
 				</div>
 			</div>
 		</div>

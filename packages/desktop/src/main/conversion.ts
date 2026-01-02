@@ -26,12 +26,12 @@ export async function convertFile(
 	config: ConversionConfig,
 	onProgress?: (progress: number) => void,
 ): Promise<ConversionResult> {
+	const outputPath = config.outputPath ?? "";
 	try {
 		const browserInstance = await getBrowser();
-
 		const mergedConfig: Partial<Config> = {
 			...defaultConfig,
-			dest: config.outputPath,
+			dest: outputPath,
 		};
 
 		if (config.theme) {
@@ -42,11 +42,8 @@ export async function convertFile(
 			mergedConfig.fonts = config.fontPairing;
 		}
 
-		if (config.metadata) {
-			mergedConfig.pdf_options = {
-				...defaultConfig.pdf_options,
-			};
-			// Metadata will be set by front-matter or config
+		if (config.author) {
+			mergedConfig.metadata = { author: config.author };
 		}
 
 		onProgress?.(50);
@@ -62,14 +59,14 @@ export async function convertFile(
 		return {
 			success: true,
 			inputPath: filePath,
-			outputPath: result.filename ?? config.outputPath,
+			outputPath: result.filename ?? outputPath,
 		};
 	} catch (error) {
 		const err = error as Error;
 		return {
 			success: false,
 			inputPath: filePath,
-			outputPath: config.outputPath,
+			outputPath,
 			error: err.message,
 		};
 	}

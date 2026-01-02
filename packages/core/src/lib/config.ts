@@ -5,12 +5,12 @@ import type { FrameAddScriptTagOptions, launch, PDFOptions } from "puppeteer";
 import type { FontConfig } from "./fonts.js";
 import type { TemplatesConfig } from "./includes.js";
 import type { PdfMetadata } from "./pdf-metadata.js";
+import { type Theme, themes } from "./presets.js";
 import type { TOCOptions } from "./toc.js";
 
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
+export { themes, type Theme };
 
-export const themes = ["beryl", "tufte", "buttondown", "pandoc"] as const;
-export type Theme = (typeof themes)[number];
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 export interface HeaderFooterColumn {
 	left?: string;

@@ -4,20 +4,29 @@ import { type ConvertResult, convertMdToPdf } from "./lib/convert.js";
 import { getDir } from "./lib/util.js";
 
 // Re-export types and utilities for CLI and other consumers
-export { type Config, defaultConfig } from "./lib/config.js";
 export {
-	MdforgeError,
-	FileNotFoundError,
-	ConfigError,
-	GenerationError,
-	IncludeError,
-} from "./lib/errors.js";
+	type Config,
+	defaultConfig,
+	type Theme,
+	themes,
+} from "./lib/config.js";
 export {
 	type ConversionInfo,
 	formatConversionInfo,
 } from "./lib/conversion-info.js";
 export { type ConvertResult, convertMdToPdf } from "./lib/convert.js";
-export type { FontConfig, FontPairing } from "./lib/fonts.js";
+export {
+	ConfigError,
+	FileNotFoundError,
+	GenerationError,
+	IncludeError,
+	MdforgeError,
+} from "./lib/errors.js";
+export {
+	type FontConfig,
+	type FontPairing,
+	fontPairings,
+} from "./lib/fonts.js";
 export { closeBrowser, type Output } from "./lib/generate-output.js";
 export type { TemplatesConfig } from "./lib/includes.js";
 // Re-export types that might be useful

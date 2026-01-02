@@ -1,7 +1,6 @@
 import { BrowserWindow, dialog, ipcMain } from "electron";
 import type { ConversionConfig } from "../types";
 import { convertFiles } from "./conversion";
-import { getPreferences, setPreferences } from "./preferences";
 
 export function setupIpcHandlers(): void {
 	// File conversion
@@ -27,26 +26,10 @@ export function setupIpcHandlers(): void {
 		return result.canceled ? [] : result.filePaths;
 	});
 
-	ipcMain.handle("select-folder", async () => {
-		const result = await dialog.showOpenDialog({
-			properties: ["openDirectory"],
-		});
-		return result.canceled ? null : result.filePaths[0];
-	});
-
 	ipcMain.handle("select-output-dir", async () => {
 		const result = await dialog.showOpenDialog({
 			properties: ["openDirectory", "createDirectory"],
 		});
 		return result.canceled ? null : result.filePaths[0];
-	});
-
-	// Preferences
-	ipcMain.handle("get-preferences", async () => {
-		return getPreferences();
-	});
-
-	ipcMain.handle("set-preferences", async (_event, prefs) => {
-		setPreferences(prefs);
 	});
 }

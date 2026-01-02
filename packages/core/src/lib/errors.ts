@@ -19,9 +19,7 @@ export class FileNotFoundError extends MdforgeError {
 	readonly path: string;
 
 	constructor(path: string, context?: string) {
-		const message = context
-			? `${context}: ${path}`
-			: `File not found: ${path}`;
+		const message = context ? `${context}: ${path}` : `File not found: ${path}`;
 		super(message);
 		this.name = "FileNotFoundError";
 		this.path = path;

@@ -1,9 +1,9 @@
+import type { Theme } from "@mdforge/core/browser";
 import { useCallback, useEffect, useState } from "react";
 import type {
 	ConversionConfig,
 	ConversionProgress,
 	ConversionResult,
-	UserPreferences,
 } from "../types";
 import ConfigPanel from "./components/ConfigPanel";
 import DropZone from "./components/DropZone";
@@ -11,7 +11,7 @@ import FileList from "./components/FileList";
 
 declare global {
 	interface Window {
-		electron: typeof import("../types").ElectronAPI;
+		electron: import("../types").ElectronAPI;
 	}
 }
 
@@ -26,18 +26,10 @@ interface FileItem {
 export default function App() {
 	const [files, setFiles] = useState<FileItem[]>([]);
 	const [outputDir, setOutputDir] = useState<string>("");
-	const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+	const [theme, setTheme] = useState<Theme>("beryl");
+	const [fontPairing, setFontPairing] = useState("beryl");
+	const [author, setAuthor] = useState("");
 	const [isConverting, setIsConverting] = useState(false);
-
-	// Load preferences on mount
-	useEffect(() => {
-		window.electron.getPreferences().then((prefs) => {
-			setPreferences(prefs);
-			if (prefs.rememberLastDir && prefs.lastOutputDir) {
-				setOutputDir(prefs.lastOutputDir);
-			}
-		});
-	}, []);
 
 	// Listen for conversion progress
 	useEffect(() => {
@@ -77,9 +69,6 @@ export default function App() {
 		const dir = await window.electron.selectOutputDir();
 		if (dir) {
 			setOutputDir(dir);
-			if (preferences?.rememberLastDir) {
-				window.electron.setPreferences({ lastOutputDir: dir });
-			}
 		}
 	};
 
@@ -92,13 +81,10 @@ export default function App() {
 		);
 
 		const config: ConversionConfig = {
-			theme: preferences?.defaultTheme,
-			fontPairing: preferences?.defaultFontPairing,
-			metadata: {
-				author: preferences?.defaultAuthor,
-			},
+			theme,
+			fontPairing,
+			author: author || undefined,
 			outputDir,
-			outputPath: "",
 		};
 
 		const results = await window.electron.convertFiles(
@@ -134,16 +120,9 @@ export default function App() {
 		setFiles([]);
 	};
 
-	const handlePreferencesChange = (prefs: Partial<UserPreferences>) => {
-		setPreferences((prev) => (prev ? { ...prev, ...prefs } : null));
-		window.electron.setPreferences(prefs);
-	};
-
 	return (
 		<div className="min-h-screen bg-gray-100 p-6">
 			<div className="max-w-2xl mx-auto">
-				<h1 className="text-2xl font-bold text-gray-800 mb-6">mdforge</h1>
-
 				<DropZone onFilesAdded={handleFilesAdded} />
 
 				{files.length > 0 && (
@@ -154,12 +133,14 @@ export default function App() {
 					/>
 				)}
 
-				{preferences && (
-					<ConfigPanel
-						preferences={preferences}
-						onChange={handlePreferencesChange}
-					/>
-				)}
+				<ConfigPanel
+					theme={theme}
+					fontPairing={fontPairing}
+					author={author}
+					onThemeChange={setTheme}
+					onFontPairingChange={setFontPairing}
+					onAuthorChange={setAuthor}
+				/>
 
 				<div className="mt-6 bg-white rounded-lg shadow p-4">
 					<div className="flex items-center gap-4">
