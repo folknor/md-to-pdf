@@ -178,11 +178,19 @@ export const convertMdToPdf = async (
 		info.warnings.push(...fontResult.warnings);
 	}
 
-	// Build stylesheet list: theme, fonts, user stylesheets
+	// Build stylesheet list: theme, fonts, font_scale, user stylesheets
 	// Order matters: theme first, fonts override theme, user overrides all
 	const baseStylesheets: string[] = [];
 	if (themeStylesheet) baseStylesheets.push(themeStylesheet);
 	if (fontCss) baseStylesheets.push(fontCss);
+
+	// Apply font_scale if set (scales the base 12pt size)
+	if (config.font_scale && config.font_scale !== 1) {
+		const scaledSize = 12 * config.font_scale;
+		baseStylesheets.push(`:root { --font-size: ${scaledSize}pt; }`);
+		info.fontScale = config.font_scale;
+	}
+
 	config.stylesheet = [...baseStylesheets, ...config.stylesheet];
 
 	// add print-urls body class and CSS if enabled

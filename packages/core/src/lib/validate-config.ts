@@ -32,6 +32,7 @@ const CONFIG_SCHEMA: Record<
 	footer: { type: "string|object" },
 	metadata: { type: "object" },
 	fonts: { type: "string|object" },
+	font_scale: { type: "number" },
 	templates: { type: "object" },
 	page_numbers: { type: "object" },
 };
@@ -214,6 +215,17 @@ export function validateConfig(config: Partial<Config>): ValidationError[] {
 				path: "metadata.keywords",
 				message: "metadata.keywords should be an array of strings",
 				value: config.metadata.keywords,
+			});
+		}
+	}
+
+	// Validate font_scale is positive
+	if (config.font_scale !== undefined) {
+		if (config.font_scale <= 0) {
+			errors.push({
+				path: "font_scale",
+				message: "font_scale must be a positive number",
+				value: config.font_scale,
 			});
 		}
 	}

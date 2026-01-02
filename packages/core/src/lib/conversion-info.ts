@@ -11,6 +11,7 @@ export interface FontInfo {
 
 export interface ConversionInfo {
 	theme?: string | false;
+	fontScale?: number;
 	fonts: {
 		heading?: FontInfo;
 		body?: FontInfo;
@@ -68,6 +69,12 @@ export function formatConversionInfo(info: ConversionInfo): string {
 		lines.push(`  fonts: ${fontParts.join(", ")}`);
 	} else if (info.theme === false) {
 		lines.push("  fonts: none");
+	}
+
+	// Font scale
+	if (info.fontScale && info.fontScale !== 1) {
+		const scaledSize = 12 * info.fontScale;
+		lines.push(`  font_scale: ${info.fontScale}× (${scaledSize}pt)`);
 	}
 
 	// Stylesheet

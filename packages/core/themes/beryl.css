@@ -9,7 +9,8 @@
    ========================================================================== */
 
 :root {
-	--font-size: 11pt;
+	/* Base font size - if changed, update font_scale logic in convert.ts */
+	--font-size: 12pt;
 	--line-height: 1.6;
 
 	--color-text: #222f3d;

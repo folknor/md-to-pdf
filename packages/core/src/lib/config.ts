@@ -192,6 +192,13 @@ export interface Config {
 	fonts?: FontConfig | string;
 
 	/**
+	 * Scale factor for all font sizes. Default: 1.
+	 * Values > 1 increase sizes, < 1 decrease.
+	 * Example: 1.2 makes 12pt base become 14.4pt.
+	 */
+	font_scale?: number;
+
+	/**
 	 * Named templates for @include.
 	 * Maps template names to file paths.
 	 */

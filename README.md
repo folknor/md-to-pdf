@@ -137,6 +137,7 @@ page_numbers:             # @see Page Number Formats
 | `footer` | `string \| object` | - | Footer config (see Footers section) |
 | `metadata` | `object` | - | PDF metadata (author, title, subject, keywords) |
 | `fonts` | `string \| object` | - | Font preset name or custom fonts `{ heading, body, mono }` |
+| `font_scale` | `number` | `1` | Scale factor for all font sizes (e.g., `1.5` = 18pt base) |
 | `templates` | `object` | - | Named templates for @include |
 | `page_numbers` | `object` | - | Page number format and start value |
 
