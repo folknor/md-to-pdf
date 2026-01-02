@@ -120,6 +120,7 @@ templates: {}             # @see Includes and Templates
 page_numbers:             # @see Page Number Formats
   format: arabic          # arabic, roman, roman-upper, alpha, alpha-upper
   start: 1
+heading_numbers: false    # @see Heading Numbers (or object with format, start_depth, etc.)
 ```
 
 ## Configuration Options
@@ -140,6 +141,7 @@ page_numbers:             # @see Page Number Formats
 | `font_scale` | `number` | `1` | Scale factor for all font sizes (e.g., `1.5` = 18pt base) |
 | `templates` | `object` | - | Named templates for @include |
 | `page_numbers` | `object` | - | Page number format and start value |
+| `heading_numbers` | `object` | - | Automatic heading numbering options |
 
 ## Stylesheets
 
@@ -358,6 +360,142 @@ page_numbers:
 ```
 
 This produces page numbers like "I", "II", "III" instead of "1", "2", "3".
+
+## Heading Numbers
+
+Automatically number headings in your document with hierarchical numbering (e.g., 1., 1.1., 1.2., 2.).
+
+### Basic Usage
+
+```yaml
+heading_numbers:
+  format: arabic     # 1.1, 1.2, 2.1 (default)
+```
+
+By default, numbering starts at h2 headings (##), leaving h1 for the document title.
+
+### Format Options
+
+Same formats as page numbers:
+
+| Format | Example | Description |
+|--------|---------|-------------|
+| `arabic` | 1.1, 1.2 | Default decimal numbers |
+| `roman` | i.i, i.ii | Lowercase roman numerals |
+| `roman-upper` | I.I, I.II | Uppercase roman numerals |
+| `alpha` | a.a, a.b | Lowercase letters |
+| `alpha-upper` | A.A, A.B | Uppercase letters |
+
+### Configuration Options
+
+```yaml
+heading_numbers:
+  format: arabic      # Number format (default: arabic)
+  start_depth: 2      # Start numbering at h2 (default: 2)
+  max_depth: 4        # Stop numbering at h4 (default: 6)
+  separator: "."      # Separator between levels (default: ".")
+  skip_first_h1: true # Skip numbering first h1 (default: true)
+```
+
+### Examples
+
+**Basic numbering (default settings):**
+
+```yaml
+heading_numbers: {}
+```
+
+Produces:
+- `# Title` → Title (not numbered)
+- `## Section` → 1. Section
+- `### Subsection` → 1.1. Subsection
+- `## Another Section` → 2. Another Section
+
+**Roman numerals with custom separator:**
+
+```yaml
+heading_numbers:
+  format: roman-upper
+  separator: "-"
+```
+
+Produces: `I-I- Introduction`, `I-II- Background`, etc.
+
+**Number all headings including h1:**
+
+```yaml
+heading_numbers:
+  start_depth: 1
+  skip_first_h1: false
+```
+
+## Form Fields
+
+Create form fields for printable documents or HTML forms using [marked-forms](https://github.com/jldec/marked-forms) syntax.
+
+### Text Input
+
+```markdown
+[Full Name ??](name)
+[Email ??*](email)        # required field
+[??](username)            # no label
+```
+
+### Textarea
+
+Use three question marks for multi-line text areas:
+
+```markdown
+[Comments ???](comments)
+```
+
+### Select Dropdown
+
+```markdown
+[?select? Choose country](country)
+- United States "US"
+- Canada "CA"
+- United Kingdom "UK"
+```
+
+The quoted value after each option is the form value; if omitted, the text is used.
+
+### Radio Buttons
+
+```markdown
+[?radiolist? Contact method](contact)
+- Email "email"
+- Phone "phone"
+- Mail "mail"
+```
+
+### Checkboxes
+
+```markdown
+[?checklist? Interests](interests)
+- Sports
+- Music
+- Technology
+```
+
+### Modifiers
+
+Append modifiers to the `??` or `?type?`:
+
+| Modifier | Effect |
+|----------|--------|
+| `*` | Required field |
+| `H` | Hidden field |
+| `M` | Modern format (wraps in `<ul>`) |
+
+Example: `[Email ??*](email)` creates a required email field.
+
+### Print Styles
+
+Form fields automatically adapt for printing:
+- Text inputs show as underlines
+- Textareas show with borders
+- Checkboxes/radios show as empty squares/circles for hand-filling
 
 ## Includes and Templates
 

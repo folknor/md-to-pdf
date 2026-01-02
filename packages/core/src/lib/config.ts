@@ -3,12 +3,14 @@ import { fileURLToPath } from "node:url";
 import type { MarkedExtension } from "marked";
 import type { FrameAddScriptTagOptions, launch, PDFOptions } from "puppeteer";
 import type { FontConfig } from "./fonts.js";
+import type { HeadingNumbersConfig } from "./heading-numbers.js";
 import type { TemplatesConfig } from "./includes.js";
 import type { PdfMetadata } from "./pdf-metadata.js";
 import { type Theme, themes } from "./presets.js";
 import type { TOCOptions } from "./toc.js";
 
 export { themes, type Theme };
+export type { HeadingNumbersConfig } from "./heading-numbers.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -209,6 +211,12 @@ export interface Config {
 	 * Controls the format (arabic, roman, etc.) and starting number.
 	 */
 	page_numbers?: PageNumbersConfig;
+
+	/**
+	 * Heading numbering options.
+	 * Automatically numbers headings in the document (e.g., 1., 1.1., 1.2.).
+	 */
+	heading_numbers?: HeadingNumbersConfig;
 }
 
 export type PuppeteerLaunchOptions = Parameters<typeof launch>[0];

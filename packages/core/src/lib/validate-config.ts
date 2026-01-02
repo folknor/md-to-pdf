@@ -35,6 +35,7 @@ const CONFIG_SCHEMA: Record<
 	font_scale: { type: "number" },
 	templates: { type: "object" },
 	page_numbers: { type: "object" },
+	heading_numbers: { type: "object" },
 };
 
 /**
@@ -314,6 +315,100 @@ export function validateConfig(config: Partial<Config>): ValidationError[] {
 					value: config.page_numbers.start,
 				});
 			}
+		}
+	}
+
+	// Validate heading_numbers structure
+	if (config.heading_numbers && typeof config.heading_numbers === "object") {
+		const validHeadingNumbersKeys = new Set([
+			"format",
+			"start_depth",
+			"max_depth",
+			"separator",
+			"skip_first_h1",
+		]);
+		const validFormats = [
+			"arabic",
+			"roman",
+			"roman-upper",
+			"alpha",
+			"alpha-upper",
+		];
+
+		for (const key of Object.keys(config.heading_numbers)) {
+			if (!validHeadingNumbersKeys.has(key)) {
+				errors.push({
+					path: `heading_numbers.${key}`,
+					message: `Unknown heading_numbers key "${key}". Use: format, start_depth, max_depth, separator, skip_first_h1`,
+					value: config.heading_numbers[key as keyof typeof config.heading_numbers],
+				});
+			}
+		}
+
+		// Validate format value
+		if (
+			config.heading_numbers.format !== undefined &&
+			!validFormats.includes(config.heading_numbers.format)
+		) {
+			errors.push({
+				path: "heading_numbers.format",
+				message: `Invalid format "${config.heading_numbers.format}". Use: ${validFormats.join(", ")}`,
+				value: config.heading_numbers.format,
+			});
+		}
+
+		// Validate start_depth is a number between 1-6
+		if (config.heading_numbers.start_depth !== undefined) {
+			if (
+				typeof config.heading_numbers.start_depth !== "number" ||
+				config.heading_numbers.start_depth < 1 ||
+				config.heading_numbers.start_depth > 6
+			) {
+				errors.push({
+					path: "heading_numbers.start_depth",
+					message: "start_depth must be a number between 1 and 6",
+					value: config.heading_numbers.start_depth,
+				});
+			}
+		}
+
+		// Validate max_depth is a number between 1-6
+		if (config.heading_numbers.max_depth !== undefined) {
+			if (
+				typeof config.heading_numbers.max_depth !== "number" ||
+				config.heading_numbers.max_depth < 1 ||
+				config.heading_numbers.max_depth > 6
+			) {
+				errors.push({
+					path: "heading_numbers.max_depth",
+					message: "max_depth must be a number between 1 and 6",
+					value: config.heading_numbers.max_depth,
+				});
+			}
+		}
+
+		// Validate separator is a string
+		if (
+			config.heading_numbers.separator !== undefined &&
+			typeof config.heading_numbers.separator !== "string"
+		) {
+			errors.push({
+				path: "heading_numbers.separator",
+				message: "separator must be a string",
+				value: config.heading_numbers.separator,
+			});
+		}
+
+		// Validate skip_first_h1 is a boolean
+		if (
+			config.heading_numbers.skip_first_h1 !== undefined &&
+			typeof config.heading_numbers.skip_first_h1 !== "boolean"
+		) {
+			errors.push({
+				path: "heading_numbers.skip_first_h1",
+				message: "skip_first_h1 must be a boolean",
+				value: config.heading_numbers.skip_first_h1,
+			});
 		}
 	}
 

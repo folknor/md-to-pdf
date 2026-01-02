@@ -1,18 +1,19 @@
 import hljs from "highlight.js";
-import type { MarkedExtension } from "marked";
 import { Marked } from "marked";
 import markedFootnote from "marked-footnote";
 import { markedHighlight } from "marked-highlight";
 import markedLinkifyIt from "marked-linkify-it";
 import { markedSmartypants } from "marked-smartypants";
 import type { Config } from "./config.js";
+import { formFields } from "./form-fields.js";
+import { headingNumbers } from "./heading-numbers.js";
 import { gfmHeadingId } from "./slugger.js";
 import { insertToc } from "./toc.js";
 
 /**
  * Create a configured Marked instance with syntax highlighting and extensions.
  */
-const getMarked = (extensions: MarkedExtension[]) => {
+const getMarked = (config: Config) => {
 	const highlightExtension = markedHighlight({
 		langPrefix: "hljs language-",
 		highlight(code, lang) {
@@ -20,13 +21,21 @@ const getMarked = (extensions: MarkedExtension[]) => {
 			return hljs.highlight(code, { language }).value;
 		},
 	});
+
+	// Use headingNumbers extension if configured, otherwise use gfmHeadingId
+	// (headingNumbers includes the same ID generation functionality)
+	const headingExtension = config.heading_numbers
+		? headingNumbers(config.heading_numbers)
+		: gfmHeadingId();
+
 	return new Marked(
 		highlightExtension,
-		gfmHeadingId(),
+		headingExtension,
+		formFields(),
 		markedSmartypants(),
 		markedFootnote(),
 		markedLinkifyIt(),
-		...extensions,
+		...config.marked_extensions,
 	).setOptions({
 		gfm: true,
 		breaks: false,
@@ -44,7 +53,7 @@ export const getHtml = (md: string, config: Config) => {
 <html>
 	<head><title>${config.document_title}</title><meta charset="utf-8"></head>
 	<body class="${config.body_class.join(" ")}">
-		${getMarked(config.marked_extensions).parse(mdWithToc)}
+		${getMarked(config).parse(mdWithToc)}
 	</body>
 </html>
 `;

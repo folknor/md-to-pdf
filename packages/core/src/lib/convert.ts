@@ -12,6 +12,7 @@ import {
 import { formatCssErrors, validateCss } from "./css-validator.js";
 import { ConfigError, GenerationError, IncludeError } from "./errors.js";
 import { generateFontStylesheet } from "./fonts.js";
+import { formFieldsCss } from "./form-fields.js";
 import { generateOutput } from "./generate-output.js";
 import { processIcons } from "./icons.js";
 import { processIncludes } from "./includes.js";
@@ -177,11 +178,14 @@ export const convertMdToPdf = async (
 		info.warnings.push(...fontResult.warnings);
 	}
 
-	// Build stylesheet list: theme, fonts, font_scale, user stylesheets
+	// Build stylesheet list: theme, fonts, font_scale, built-in features, user stylesheets
 	// Order matters: theme first, fonts override theme, user overrides all
 	const baseStylesheets: string[] = [];
 	if (themeStylesheet) baseStylesheets.push(themeStylesheet);
 	if (fontCss) baseStylesheets.push(fontCss);
+
+	// Add form fields CSS (always available)
+	baseStylesheets.push(formFieldsCss);
 
 	// Apply font_scale if set (scales the base 12pt size)
 	if (config.font_scale && config.font_scale !== 1) {
