@@ -1,4 +1,5 @@
 import { fontPairingPresets, type Theme, themes } from "@mdforge/core/browser";
+import type React from "react";
 
 interface ConfigPanelProps {
 	theme: Theme;
@@ -16,7 +17,7 @@ export default function ConfigPanel({
 	onThemeChange,
 	onFontPairingChange,
 	onAuthorChange,
-}: ConfigPanelProps) {
+}: ConfigPanelProps): React.ReactElement {
 	return (
 		<div className="mt-6 bg-white rounded-lg shadow p-4">
 			<h2 className="font-medium text-gray-800 mb-4">Settings</h2>
@@ -32,7 +33,9 @@ export default function ConfigPanel({
 					<select
 						id="theme-select"
 						value={theme}
-						onChange={(e) => onThemeChange(e.target.value as Theme)}
+						onChange={(e: React.ChangeEvent<HTMLSelectElement>): void =>
+							onThemeChange(e.target.value as Theme)
+						}
 						className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 					>
 						{themes.map((t) => (
@@ -53,7 +56,9 @@ export default function ConfigPanel({
 					<select
 						id="font-pairing-select"
 						value={fontPairing}
-						onChange={(e) => onFontPairingChange(e.target.value)}
+						onChange={(e: React.ChangeEvent<HTMLSelectElement>): void =>
+							onFontPairingChange(e.target.value)
+						}
 						className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 					>
 						{fontPairingPresets.map((preset) => (
@@ -75,7 +80,9 @@ export default function ConfigPanel({
 						id="author-input"
 						type="text"
 						value={author}
-						onChange={(e) => onAuthorChange(e.target.value)}
+						onChange={(e: React.ChangeEvent<HTMLInputElement>): void =>
+							onAuthorChange(e.target.value)
+						}
 						placeholder="Your name"
 						className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 					/>

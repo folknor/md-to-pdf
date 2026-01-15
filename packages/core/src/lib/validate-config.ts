@@ -41,7 +41,7 @@ const CONFIG_SCHEMA: Record<
 /**
  * Known pdf_options keys (Puppeteer PDFOptions)
  */
-const PDF_OPTIONS_KEYS = new Set([
+const PDF_OPTIONS_KEYS: Set<string> = new Set([
 	"path",
 	"scale",
 	"displayHeaderFooter",

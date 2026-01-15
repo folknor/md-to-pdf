@@ -1,4 +1,5 @@
 import type { Theme } from "@mdforge/core/browser";
+import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import type {
 	ConversionConfig,
@@ -23,7 +24,7 @@ interface FileItem {
 	error?: string;
 }
 
-export default function App() {
+export default function App(): React.ReactElement {
 	const [files, setFiles] = useState<FileItem[]>([]);
 	const [outputDir, setOutputDir] = useState<string>("");
 	const [theme, setTheme] = useState<Theme>("beryl");
@@ -65,14 +66,14 @@ export default function App() {
 		});
 	}, []);
 
-	const handleSelectOutputDir = async () => {
+	const handleSelectOutputDir = async (): Promise<void> => {
 		const dir = await window.electron.selectOutputDir();
 		if (dir) {
 			setOutputDir(dir);
 		}
 	};
 
-	const handleConvert = async () => {
+	const handleConvert = async (): Promise<void> => {
 		if (files.length === 0 || !outputDir) return;
 
 		setIsConverting(true);
@@ -112,11 +113,11 @@ export default function App() {
 		setIsConverting(false);
 	};
 
-	const handleRemoveFile = (path: string) => {
+	const handleRemoveFile = (path: string): void => {
 		setFiles((prev) => prev.filter((f) => f.path !== path));
 	};
 
-	const handleClearFiles = () => {
+	const handleClearFiles = (): void => {
 		setFiles([]);
 	};
 

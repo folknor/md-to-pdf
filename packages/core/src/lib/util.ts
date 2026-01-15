@@ -6,7 +6,8 @@ import YAML from "yaml";
 /**
  * Get the directory that a file is in.
  */
-export const getDir = (filePath: string) => resolve(parse(filePath).dir);
+export const getDir = (filePath: string): string =>
+	resolve(parse(filePath).dir);
 
 /**
  * Derive the output file path from a source file.
@@ -14,7 +15,7 @@ export const getDir = (filePath: string) => resolve(parse(filePath).dir);
 export const getOutputFilePath = (
 	mdFilePath: string,
 	extension: "html" | "pdf",
-) => {
+): string => {
 	const { dir, name } = parse(mdFilePath);
 	return join(dir, `${name}.${extension}`);
 };
@@ -22,7 +23,7 @@ export const getOutputFilePath = (
 /**
  * Check whether the input is a URL.
  */
-export const isHttpUrl = (input: string) => {
+export const isHttpUrl = (input: string): boolean => {
 	try {
 		return new URL(input).protocol.startsWith("http");
 	} catch {

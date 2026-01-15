@@ -1,4 +1,4 @@
-import type { MarkedExtension } from "marked";
+import type { MarkedExtension, Tokens } from "marked";
 
 /**
  * Form field types
@@ -64,13 +64,13 @@ export function formFields(): MarkedExtension {
 			{
 				name: "formFieldBlock",
 				level: "block",
-				start(src) {
+				start(src: string): number | undefined {
 					const match = src.match(
 						/^\[(\?(?:select|checklist|radiolist)\?[*HM]*)\s*([^\]]*)\]\(([^)]*)\)/m,
 					);
 					return match?.index;
 				},
-				tokenizer(src) {
+				tokenizer(src: string): Tokens.Generic | undefined {
 					const match =
 						/^\[(\?(?:select|checklist|radiolist)\?[*HM]*)\s*([^\]]*)\]\(([^)]*)\)\n?/.exec(
 							src,
@@ -102,7 +102,7 @@ export function formFields(): MarkedExtension {
 					}
 					return;
 				},
-				renderer() {
+				renderer(): string {
 					// Actual rendering happens when we see the list
 					return "";
 				},
@@ -112,13 +112,13 @@ export function formFields(): MarkedExtension {
 			{
 				name: "formFieldList",
 				level: "block",
-				start(src) {
+				start(src: string): number | undefined {
 					if (!pendingListConsumer) return;
 					// Check if this starts with a list
 					const match = src.match(/^(\s*[-*+]|\s*\d+\.)\s/m);
 					return match?.index;
 				},
-				tokenizer(src) {
+				tokenizer(src: string): Tokens.Generic | undefined {
 					if (!pendingListConsumer) return;
 
 					// Match the list using marked's default list pattern
@@ -161,7 +161,7 @@ export function formFields(): MarkedExtension {
 						options,
 					};
 				},
-				renderer(token) {
+				renderer(token: Tokens.Generic): string {
 					const { fieldType, name, label, modifiers, options } =
 						token as unknown as {
 							fieldType: FieldType;
@@ -213,10 +213,10 @@ ${itemsHtml}
 			{
 				name: "formFieldInline",
 				level: "inline",
-				start(src) {
+				start(src: string): number | undefined {
 					return src.indexOf("[");
 				},
-				tokenizer(src) {
+				tokenizer(src: string): Tokens.Generic | undefined {
 					// Text input: [Label ??](name) or [??](name)
 					// Textarea: [Label ???](name)
 					const match = /^\[([^\]]*?)(\?{2,3}[*HM]*)\]\(([^)]*)\)/.exec(src);
@@ -240,7 +240,7 @@ ${itemsHtml}
 					}
 					return;
 				},
-				renderer(token) {
+				renderer(token: Tokens.Generic): string {
 					const { fieldType, name, label, modifiers } = token as unknown as {
 						fieldType: FieldType;
 						name: string;

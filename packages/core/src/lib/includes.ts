@@ -70,7 +70,7 @@ export async function processIncludes(
 	content: string,
 	baseDir: string,
 	templates?: TemplatesConfig,
-	depth = 0,
+	depth: number = 0,
 ): Promise<string> {
 	const MAX_DEPTH = 10;
 

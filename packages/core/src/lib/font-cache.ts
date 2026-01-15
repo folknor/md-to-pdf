@@ -12,9 +12,14 @@ import { getFonts } from "font-list";
  * Downloaded fonts are cached in ~/.cache/mdforge/fonts/
  */
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const CACHE_DIR = join(homedir(), ".cache", "mdforge", "fonts");
-const GOOGLE_FONTS_LIST = join(__dirname, "..", "data", "google-fonts.json");
+const __dirname: string = dirname(fileURLToPath(import.meta.url));
+const CACHE_DIR: string = join(homedir(), ".cache", "mdforge", "fonts");
+const GOOGLE_FONTS_LIST: string = join(
+	__dirname,
+	"..",
+	"data",
+	"google-fonts.json",
+);
 
 // Cache system fonts for the session (avoid repeated lookups)
 let systemFontsCache: Set<string> | null = null;
@@ -91,7 +96,7 @@ async function ensureCacheDir(): Promise<void> {
  * Generate cache key for a font request
  */
 function getCacheKey(fontNames: string[], weights: number[]): string {
-	const input = `${fontNames.sort().join(",")}:${weights.sort().join(",")}`;
+	const input = `${fontNames.sort((a, b) => a.localeCompare(b)).join(",")}:${weights.sort((a, b) => a - b).join(",")}`;
 	return createHash("md5").update(input).digest("hex");
 }
 
@@ -176,9 +181,12 @@ async function fetchAndEmbedFonts(
 		// Find all woff2 URLs and replace with base64
 		const urlRegex = /url\((https:\/\/fonts\.gstatic\.com[^)]+\.woff2)\)/g;
 		const urls = new Set<string>();
-		let match: RegExpExecArray | null;
 
-		while ((match = urlRegex.exec(css)) !== null) {
+		for (
+			let match = urlRegex.exec(css);
+			match !== null;
+			match = urlRegex.exec(css)
+		) {
 			if (match[1]) urls.add(match[1]);
 		}
 

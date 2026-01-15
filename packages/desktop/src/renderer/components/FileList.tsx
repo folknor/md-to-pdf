@@ -1,3 +1,5 @@
+import type React from "react";
+
 interface FileItem {
 	path: string;
 	name: string;
@@ -12,7 +14,11 @@ interface FileListProps {
 	onClear: () => void;
 }
 
-export default function FileList({ files, onRemove, onClear }: FileListProps) {
+export default function FileList({
+	files,
+	onRemove,
+	onClear,
+}: FileListProps): React.ReactElement {
 	return (
 		<div className="mt-6 bg-white rounded-lg shadow">
 			<div className="flex items-center justify-between p-3 border-b">
@@ -52,7 +58,7 @@ export default function FileList({ files, onRemove, onClear }: FileListProps) {
 
 						<button
 							type="button"
-							onClick={() => onRemove(file.path)}
+							onClick={(): void => onRemove(file.path)}
 							aria-label="Remove file"
 							className="text-gray-400 hover:text-red-600 transition-colors"
 						>
@@ -78,7 +84,11 @@ export default function FileList({ files, onRemove, onClear }: FileListProps) {
 	);
 }
 
-function StatusIcon({ status }: { status: FileItem["status"] }) {
+function StatusIcon({
+	status,
+}: {
+	status: FileItem["status"];
+}): React.ReactElement {
 	switch (status) {
 		case "pending":
 			return <div className="w-5 h-5 rounded-full border-2 border-gray-300" />;

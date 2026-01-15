@@ -29,7 +29,9 @@ let browserPromise: Promise<Browser> | undefined;
 /**
  * Close the browser instance.
  */
-export const closeBrowser = async () => (await browserPromise)?.close();
+export const closeBrowser = async (): Promise<void> => {
+	await (await browserPromise)?.close();
+};
 
 /**
  * Generate the output (either PDF or HTML).
@@ -40,7 +42,7 @@ export async function generateOutput(
 	config: Config,
 	browserRef?: Browser,
 ): Promise<Output> {
-	async function getBrowser() {
+	async function getBrowser(): Promise<Browser> {
 		// biome-ignore lint/nursery/noUnnecessaryConditions: browserRef is an optional param that may be undefined
 		if (browserRef) {
 			return browserRef;

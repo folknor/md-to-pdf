@@ -17,7 +17,7 @@ import arg from "arg";
 import Listr from "listr";
 import YAML from "yaml";
 
-const help = () =>
+const help = (): void =>
 	console.log(`
   Usage: mdforge [options] <files...>
 
@@ -51,7 +51,7 @@ const help = () =>
 // --
 // Configure CLI Arguments
 
-export const cliFlags = arg({
+const cliSpec = {
 	"--help": Boolean,
 	"--version": Boolean,
 	"--output": String,
@@ -62,7 +62,9 @@ export const cliFlags = arg({
 	"-h": "--help",
 	"-v": "--version",
 	"-o": "--output",
-});
+} as const;
+
+export const cliFlags: arg.Result<typeof cliSpec> = arg(cliSpec);
 
 // --
 // Run
@@ -75,7 +77,7 @@ main(cliFlags).catch((error) => {
 // --
 // Define Main Function
 
-async function main(args: typeof cliFlags) {
+async function main(args: typeof cliFlags): Promise<void> {
 	process.title = "mdforge";
 
 	if (args["--version"]) {
@@ -148,9 +150,9 @@ async function main(args: typeof cliFlags) {
 	// Store results for info display
 	const results: Map<string, ConvertResult> = new Map();
 
-	const getListrTask = (file: string) => ({
+	const getListrTask = (file: string): Listr.ListrTask => ({
 		title: `generating ${args["--as-html"] ? "HTML" : "PDF"} from ${basename(file)}`,
-		task: async () => {
+		task: async (): Promise<ConvertResult> => {
 			const result = await convertMdToPdf({ path: file }, config, { args });
 			results.set(file, result);
 			return result;

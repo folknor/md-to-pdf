@@ -12,7 +12,7 @@ import { join } from "node:path";
 const ICONIFY_API = "https://api.iconify.design";
 
 // Cache directory for downloaded icons
-const CACHE_DIR = join(homedir(), ".cache", "mdforge", "icons");
+const CACHE_DIR: string = join(homedir(), ".cache", "mdforge", "icons");
 
 /**
  * Regex to match icon syntax:

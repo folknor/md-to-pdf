@@ -93,8 +93,11 @@ async function processImages(text: string, baseDir: string): Promise<string> {
 	let result = text;
 
 	for (const regex of patterns) {
-		let match: RegExpExecArray | null;
-		while ((match = regex.exec(text))) {
+		for (
+			let match = regex.exec(text);
+			match !== null;
+			match = regex.exec(text)
+		) {
 			// Extract src and size based on pattern
 			let src: string | undefined;
 			let sizePercent: string | undefined;
@@ -142,6 +145,7 @@ async function processImages(text: string, baseDir: string): Promise<string> {
  * Map page number format to CSS counter style
  */
 function formatToCssCounterStyle(format?: PageNumberFormat): string {
+	// biome-ignore lint/nursery/noUnnecessaryConditions: format can be undefined, switch default handles it
 	switch (format) {
 		case "roman":
 			return "lower-roman";
@@ -291,7 +295,7 @@ export interface PagedCssConfig {
 export function hasBackground(config: PagedCssConfig): boolean {
 	const header = normalizeToColumns(config.header);
 	const footer = normalizeToColumns(config.footer);
-	return !!(header.background || footer.background);
+	return header.background !== undefined || footer.background !== undefined;
 }
 
 /**
@@ -431,7 +435,10 @@ export async function generatePagedCss(
 	const marginRules: string[] = [];
 
 	// Helper to build margin rule with optional extra styles
-	const addMarginRule = async (position: string, text: string) => {
+	const addMarginRule = async (
+		position: string,
+		text: string,
+	): Promise<void> => {
 		const { content, styles } = await buildContentValue(
 			text,
 			baseDir,

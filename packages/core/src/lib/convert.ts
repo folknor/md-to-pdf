@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, dirname, relative, resolve } from "node:path";
 
-const require = createRequire(import.meta.url);
+const require: NodeRequire = createRequire(import.meta.url);
 
 import process from "node:process";
 import type { Browser } from "puppeteer";

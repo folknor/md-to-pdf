@@ -1,5 +1,5 @@
 import GithubSlugger from "github-slugger";
-import type { MarkedExtension } from "marked";
+import type { MarkedExtension, Tokens } from "marked";
 import { cleanForSlug } from "./slugger.js";
 
 /**
@@ -139,7 +139,7 @@ export function headingNumbers(
 
 	return {
 		renderer: {
-			heading({ tokens, depth }) {
+			heading({ tokens, depth }: Tokens.Heading): string | false {
 				const text = this.parser.parseInline(tokens);
 				const id = slugger.slug(cleanForSlug(text));
 

@@ -1,10 +1,13 @@
+import type React from "react";
 import { type DragEvent, useCallback, useState } from "react";
 
 interface DropZoneProps {
 	onFilesAdded: (paths: string[]) => void;
 }
 
-export default function DropZone({ onFilesAdded }: DropZoneProps) {
+export default function DropZone({
+	onFilesAdded,
+}: DropZoneProps): React.ReactElement {
 	const [isDragging, setIsDragging] = useState(false);
 
 	const handleDragOver = useCallback((e: DragEvent) => {
@@ -43,7 +46,7 @@ export default function DropZone({ onFilesAdded }: DropZoneProps) {
 		[onFilesAdded],
 	);
 
-	const handleSelectFiles = async () => {
+	const handleSelectFiles = async (): Promise<void> => {
 		const paths = await window.electron.selectFiles();
 		if (paths.length > 0) {
 			onFilesAdded(paths);

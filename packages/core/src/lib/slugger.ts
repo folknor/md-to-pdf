@@ -1,5 +1,5 @@
 import GithubSlugger from "github-slugger";
-import type { MarkedExtension } from "marked";
+import type { MarkedExtension, Tokens } from "marked";
 import { transliterate } from "transliteration";
 
 const unescapeTest = /&(#(?:\d+)|(?:#x[0-9A-Fa-f]+)|(?:\w+));?/gi;
@@ -44,7 +44,7 @@ export function gfmHeadingId(): MarkedExtension {
 
 	return {
 		renderer: {
-			heading({ tokens, depth }) {
+			heading({ tokens, depth }: Tokens.Heading): string {
 				const text = this.parser.parseInline(tokens);
 				const id = slugger.slug(cleanForSlug(text));
 				return `<h${depth} id="${id}">${text}</h${depth}>\n`;

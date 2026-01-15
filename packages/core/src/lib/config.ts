@@ -13,7 +13,7 @@ import type { TOCOptions } from "./toc.js";
 export { themes, type Theme };
 export type { HeadingNumbersConfig } from "./heading-numbers.js";
 
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const __dirname: string = fileURLToPath(new URL(".", import.meta.url));
 
 export interface HeaderFooterColumn {
 	left?: string;
@@ -46,7 +46,7 @@ export interface PageNumbersConfig {
 	start?: number;
 }
 
-export const themesDir = resolve(__dirname, "..", "..", "themes");
+export const themesDir: string = resolve(__dirname, "..", "..", "themes");
 
 export const defaultConfig: Config = {
 	basedir: process.cwd(),

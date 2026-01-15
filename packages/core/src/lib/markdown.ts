@@ -13,10 +13,10 @@ import { insertToc } from "./toc.js";
 /**
  * Create a configured Marked instance with syntax highlighting and extensions.
  */
-const getMarked = (config: Config) => {
+const getMarked = (config: Config): Marked => {
 	const highlightExtension = markedHighlight({
 		langPrefix: "hljs language-",
-		highlight(code, lang) {
+		highlight(code: string, lang: string): string {
 			const language = hljs.getLanguage(lang) ? lang : "plaintext";
 			return hljs.highlight(code, { language }).value;
 		},
@@ -47,7 +47,7 @@ const getMarked = (config: Config) => {
 /**
  * Generates a HTML document from a markdown string.
  */
-export const getHtml = (md: string, config: Config) => {
+export const getHtml = (md: string, config: Config): string => {
 	const mdWithToc = insertToc(md, config.toc_options);
 	return `<!DOCTYPE html>
 <html>
