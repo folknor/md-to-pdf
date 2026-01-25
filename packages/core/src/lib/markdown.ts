@@ -4,6 +4,7 @@ import markedFootnote from "marked-footnote";
 import { markedHighlight } from "marked-highlight";
 import markedLinkifyIt from "marked-linkify-it";
 import { markedSmartypants } from "marked-smartypants";
+import { admonitions } from "./admonitions.js";
 import type { Config } from "./config.js";
 import { formFields } from "./form-fields.js";
 import { headingNumbers } from "./heading-numbers.js";
@@ -31,6 +32,7 @@ const getMarked = (config: Config): Marked => {
 	return new Marked(
 		highlightExtension,
 		headingExtension,
+		admonitions(),
 		formFields(),
 		markedSmartypants(),
 		markedFootnote(),

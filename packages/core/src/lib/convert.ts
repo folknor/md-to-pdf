@@ -14,6 +14,7 @@ import {
 import { formatCssErrors, validateCss } from "./css-validator.js";
 import { ConfigError, GenerationError, IncludeError } from "./errors.js";
 import { generateFontStylesheet } from "./fonts.js";
+import { admonitionsCss } from "./admonitions.js";
 import { formFieldsCss } from "./form-fields.js";
 import { generateOutput } from "./generate-output.js";
 import { processIcons } from "./icons.js";
@@ -186,8 +187,9 @@ export const convertMdToPdf = async (
 	if (themeStylesheet) baseStylesheets.push(themeStylesheet);
 	if (fontCss) baseStylesheets.push(fontCss);
 
-	// Add form fields CSS (always available)
+	// Add built-in extension CSS (always available)
 	baseStylesheets.push(formFieldsCss);
+	baseStylesheets.push(admonitionsCss);
 
 	// Apply font_scale if set (scales the base 12pt size)
 	if (config.font_scale && config.font_scale !== 1) {
