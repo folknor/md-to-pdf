@@ -1,8 +1,11 @@
+import { execSync } from "node:child_process";
+import { promises as fs } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import puppeteer, { type Browser } from "puppeteer";
 import { addAcroFormFields } from "./acroform.js";
 import type { Config } from "./config.js";
+import type { EmbeddedFontData } from "./fonts.js";
 import { injectPdfMetadata } from "./pdf-metadata.js";
 import { isHttpUrl } from "./util.js";
 
@@ -34,6 +37,43 @@ export const closeBrowser = async (): Promise<void> => {
 	await (await browserPromise)?.close();
 };
 
+/** Options for output generation */
+interface GenerateOutputOptions {
+	embeddedFonts?: EmbeddedFontData[];
+}
+
+/**
+ * Detect the actual system font file using fc-match (Linux/macOS with fontconfig).
+ */
+async function detectSystemFont(
+	fontFamily: string,
+): Promise<EmbeddedFontData | undefined> {
+	try {
+		// Use fc-match to find the font file
+		const fontFile = execSync(`fc-match -f '%{file}' "${fontFamily}"`, {
+			encoding: "utf-8",
+			timeout: 5000,
+		}).trim();
+
+		if (!fontFile || !fontFile.match(/\.(ttf|otf|woff2?)$/i)) {
+			return undefined;
+		}
+
+		// Read the font file
+		const fontData = await fs.readFile(fontFile);
+
+		return {
+			family: fontFamily,
+			data: new Uint8Array(fontData),
+			weight: 400,
+			style: "normal",
+		};
+	} catch {
+		// fc-match not available or font not found
+		return undefined;
+	}
+}
+
 /**
  * Generate the output (either PDF or HTML).
  */
@@ -42,6 +82,7 @@ export async function generateOutput(
 	relativePath: string,
 	config: Config,
 	browserRef?: Browser,
+	options: GenerateOutputOptions = {},
 ): Promise<Output> {
 	async function getBrowser(): Promise<Browser> {
 		// biome-ignore lint/nursery/noUnnecessaryConditions: browserRef is an optional param that may be undefined
@@ -87,10 +128,11 @@ export async function generateOutput(
 	// Wait for network to be idle
 	await page.waitForNetworkIdle();
 
-	// Extract select options if fillable mode is enabled
-	// (Select options are not encoded in marker URLs, so we need to extract them from DOM)
+	// Extract form field info if fillable mode is enabled
 	let selectOptions: Map<string, string[]> | undefined;
+	let formFontInfo: { fontFamily: string; fontSize: number } | undefined;
 	if (config.fillable && !config.as_html) {
+		// Extract select options (not encoded in marker URLs)
 		const selectData = await page.evaluate(() => {
 			const selects = document.querySelectorAll(
 				"[data-form-field][data-field-type='select'] select",
@@ -111,6 +153,26 @@ export async function generateOutput(
 		});
 		if (selectData.length > 0) {
 			selectOptions = new Map(selectData.map((s) => [s.name, s.options]));
+		}
+
+		// Extract font info from form fields (use first input/select as reference)
+		formFontInfo = await page.evaluate(() => {
+			const input = document.querySelector(
+				"[data-form-field] input, [data-form-field] select, [data-form-field] textarea",
+			);
+			if (!input) return undefined;
+			const style = window.getComputedStyle(input);
+			const fontFamily = style.fontFamily.split(",")[0]?.trim().replace(/['"]/g, "") || "Helvetica";
+			const fontSize = parseFloat(style.fontSize) || 12;
+			return { fontFamily, fontSize };
+		});
+
+		// If no embedded fonts from Google Fonts, try to detect system font file
+		if ((!options.embeddedFonts || options.embeddedFonts.length === 0) && formFontInfo) {
+			const systemFontData = await detectSystemFont(formFontInfo.fontFamily);
+			if (systemFontData) {
+				options.embeddedFonts = [systemFontData];
+			}
 		}
 	}
 
@@ -164,6 +226,8 @@ export async function generateOutput(
 	if (config.fillable) {
 		pdfContent = await addAcroFormFields(Buffer.from(pdfContent), {
 			selectOptions,
+			formFontInfo,
+			embeddedFonts: options.embeddedFonts,
 		});
 	}
 

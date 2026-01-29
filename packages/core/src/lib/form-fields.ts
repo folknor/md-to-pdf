@@ -333,22 +333,32 @@ export const formFieldsCss = `
   pointer-events: none;
 }
 
-/* Inset marker for inputs/textareas to account for border */
+/* Inset marker for inputs/textareas to account for border and padding */
 .form-text .form-marker,
 .form-textarea .form-marker,
 .form-select .form-marker {
   top: 1px;
-  left: 1px;
-  width: calc(100% - 2px);
+  left: calc(0.5em + 1px);
+  width: calc(100% - 0.5em - 2px);
   height: calc(100% - 2px);
 }
 
 /* For checkbox/radio, the wrapper is inline */
 .form-option .form-input-wrapper {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 1em;
   height: 1em;
   vertical-align: middle;
+}
+
+/* Make checkbox/radio inputs fill the wrapper */
+.form-option .form-input-wrapper input[type="checkbox"],
+.form-option .form-input-wrapper input[type="radio"] {
+  width: 100%;
+  height: 100%;
+  margin: 0;
 }
 
 /* Form fields base */

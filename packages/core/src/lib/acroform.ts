@@ -11,7 +11,16 @@
  * 4. Remove the marker annotations
  */
 
-import { PDFArray, PDFDict, PDFDocument, PDFName } from "@folknor/pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import {
+	PDFArray,
+	PDFDict,
+	PDFDocument,
+	type PDFFont,
+	PDFName,
+	rgb,
+} from "@folknor/pdf-lib";
+import type { EmbeddedFontData } from "./fonts.js";
 import { MARKER_URL_PREFIX } from "./form-fields.js";
 
 /**
@@ -38,6 +47,13 @@ export interface FieldPosition {
 export interface AcroFormConfig {
 	/** For select fields: map of field name to list of options */
 	selectOptions?: Map<string, string[]>;
+	/** Font information extracted from rendered form fields */
+	formFontInfo?: {
+		fontFamily: string;
+		fontSize: number;
+	};
+	/** Embedded font data for form fields */
+	embeddedFonts?: EmbeddedFontData[];
 }
 
 /**
@@ -192,6 +208,44 @@ export async function addAcroFormFields(
 
 	const form = pdfDoc.getForm();
 
+	// Calculate font size for form fields
+	// CSS uses 96 DPI, PDF uses 72 DPI, so multiply by 0.75
+	// If no font info available, use a reasonable default based on typical form field height
+	const fontSize = config.formFontInfo
+		? Math.round(config.formFontInfo.fontSize * 0.75)
+		: undefined;
+
+	// Embed custom font if available
+	let customFont: PDFFont | undefined;
+	if (config.embeddedFonts && config.embeddedFonts.length > 0) {
+		// Find the body font (weight 400, normal style preferred)
+		const fontFamily = config.formFontInfo?.fontFamily;
+		let fontData = config.embeddedFonts.find(
+			(f) =>
+				f.family === fontFamily && f.weight === 400 && f.style === "normal",
+		);
+		// Fallback to any font with weight 400
+		if (!fontData) {
+			fontData = config.embeddedFonts.find(
+				(f) => f.weight === 400 && f.style === "normal",
+			);
+		}
+		// Fallback to first available font
+		if (!fontData) {
+			fontData = config.embeddedFonts[0];
+		}
+
+		if (fontData) {
+			try {
+				// biome-ignore lint/suspicious/noExplicitAny: fontkit types don't match exactly
+				pdfDoc.registerFontkit(fontkit as any);
+				customFont = await pdfDoc.embedFont(fontData.data as Uint8Array<ArrayBuffer>);
+			} catch {
+				// Font embedding failed - continue with default Helvetica
+			}
+		}
+	}
+
 	// Group checkbox/radio fields by name for proper handling
 	const radioGroups = new Map<string, FieldPosition[]>();
 	const checkboxGroups = new Map<string, FieldPosition[]>();
@@ -220,6 +274,9 @@ export async function addAcroFormFields(
 		try {
 			if (field.type === "text" || field.type === "textarea") {
 				const textField = form.createTextField(field.name);
+				if (fontSize) {
+					textField.setFontSize(fontSize);
+				}
 				textField.addToPage(page, {
 					x: field.x,
 					y: field.y,
@@ -227,6 +284,7 @@ export async function addAcroFormFields(
 					height: field.height,
 					borderWidth: 0,
 					backgroundColor: undefined, // Transparent - show HTML styling through
+					font: customFont,
 				});
 				if (field.type === "textarea") {
 					textField.enableMultiline();
@@ -234,6 +292,9 @@ export async function addAcroFormFields(
 				}
 			} else if (field.type === "select") {
 				const dropdown = form.createDropdown(field.name);
+				if (fontSize) {
+					dropdown.setFontSize(fontSize);
+				}
 				const options = config.selectOptions?.get(field.name);
 				if (options) {
 					dropdown.addOptions(options);
@@ -245,6 +306,25 @@ export async function addAcroFormFields(
 					height: field.height,
 					borderWidth: 0,
 					backgroundColor: undefined, // Transparent
+					font: customFont,
+				});
+
+				// Draw a down arrow indicator on the right side
+				const arrowFontSize = fontSize ?? 12;
+				const arrowWidth = Math.min(arrowFontSize * 0.6, field.height * 0.3);
+				const arrowHeight = arrowWidth * 0.6;
+				const arrowPadding = 4;
+				const arrowX = field.x + field.width - arrowPadding - arrowWidth;
+				// Arrow extends downward from y, so place top at center + half height
+				const arrowY = field.y + (field.height + arrowHeight) / 2;
+				// SVG path for downward triangle (SVG coords: Y increases downward):
+				// Top-left -> Top-right -> Bottom-center
+				const arrowPath = `M 0 0 L ${arrowWidth} 0 L ${arrowWidth / 2} ${arrowHeight} Z`;
+				page.drawSvgPath(arrowPath, {
+					x: arrowX,
+					y: arrowY,
+					color: rgb(0, 0, 0),
+					borderWidth: 0,
 				});
 			} else if (field.type === "checkbox") {
 				const size = Math.min(field.width, field.height);
@@ -307,6 +387,11 @@ export async function addAcroFormFields(
 				// Checkbox creation may fail - skip silently
 			}
 		}
+	}
+
+	// Update all field appearances with custom font if available
+	if (customFont) {
+		form.updateFieldAppearances(customFont);
 	}
 
 	// Remove background colors from all form field widgets

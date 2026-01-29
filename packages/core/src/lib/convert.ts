@@ -182,6 +182,9 @@ export const convertMdToPdf = async (
 		info.warnings.push(...fontResult.warnings);
 	}
 
+	// Store embedded font data for form field rendering
+	const embeddedFonts = fontResult?.embeddedFonts;
+
 	// Build stylesheet list: theme, fonts, font_scale, built-in features, user stylesheets
 	// Order matters: theme first, fonts override theme, user overrides all
 	const baseStylesheets: string[] = [];
@@ -424,7 +427,9 @@ export const convertMdToPdf = async (
 
 	let output: Awaited<ReturnType<typeof generateOutput>>;
 	try {
-		output = await generateOutput(html, relativePath, config, browser);
+		output = await generateOutput(html, relativePath, config, browser, {
+			embeddedFonts,
+		});
 	} catch (error) {
 		const err = error as Error;
 		const outputType = config.as_html ? "HTML" : "PDF";
