@@ -35,7 +35,7 @@
 		"marked-highlight": "^2.2.3",
 		"marked-linkify-it": "^3.1.14",
 		"marked-smartypants": "^1.1.11",
-		"@folknor/pdf-lib": "file:/home/folk/Programs/pdf-lib",
+		"@folknor/pdf-lib": "github:folknor/pdf-lib#6501be2a",
 		"postcss": "^8.5.6",
 		"puppeteer": "^24.36.1",
 		"transliteration": "^2.6.1",

@@ -19,7 +19,7 @@ export async function injectPdfMetadata(
 	pdfBuffer: Buffer,
 	metadata: PdfMetadata,
 ): Promise<Buffer> {
-	const pdfDoc = await PDFDocument.load(pdfBuffer);
+	const pdfDoc = await PDFDocument.load(new Uint8Array(pdfBuffer));
 
 	if (metadata.title) {
 		pdfDoc.setTitle(metadata.title);

@@ -178,7 +178,7 @@ export async function addAcroFormFields(
 	pdfBuffer: Buffer | Uint8Array,
 	config: AcroFormConfig = {},
 ): Promise<Uint8Array> {
-	const pdfDoc = await PDFDocument.load(pdfBuffer);
+	const pdfDoc = await PDFDocument.load(new Uint8Array(pdfBuffer));
 	const pages = pdfDoc.getPages();
 	if (pages.length === 0) {
 		return pdfDoc.save();
