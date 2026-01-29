@@ -30,15 +30,24 @@ async function getExampleOutputs(examplePath) {
 		: null;
 
 	// Find variant config files (*.yaml but not config.yaml)
-	const variantConfigs = entries
-		.filter(
-			(e) =>
-				e.isFile() && e.name.endsWith(".yaml") && e.name !== "config.yaml",
-		)
-		.map((e) => ({
-			name: e.name.replace(/\.yaml$/, ""),
-			path: join(examplePath, e.name),
-		}));
+	const variantConfigs = await Promise.all(
+		entries
+			.filter(
+				(e) =>
+					e.isFile() && e.name.endsWith(".yaml") && e.name !== "config.yaml",
+			)
+			.map(async (e) => {
+				const configPath = join(examplePath, e.name);
+				const configContent = await fs.readFile(configPath, "utf-8");
+				// Simple check for as_html: true (avoid adding yaml dependency)
+				const isHtml = /^as_html:\s*true\s*$/m.test(configContent);
+				return {
+					name: e.name.replace(/\.yaml$/, ""),
+					path: configPath,
+					isHtml,
+				};
+			}),
+	);
 
 	const outputs = [];
 
@@ -57,11 +66,12 @@ async function getExampleOutputs(examplePath) {
 			configFile: defaultConfigFile,
 		});
 
-		// Variant outputs (e.g., fillable.yaml -> document-fillable.pdf)
+		// Variant outputs (e.g., fillable.yaml -> document-fillable.pdf, html.yaml -> document-html.html)
 		for (const variant of variantConfigs) {
+			const ext = variant.isHtml ? "html" : "pdf";
 			outputs.push({
 				input,
-				output: join(examplePath, `${baseName}-${variant.name}.pdf`),
+				output: join(examplePath, `${baseName}-${variant.name}.${ext}`),
 				name: `${entry.name} (${variant.name})`,
 				configFile: variant.path,
 			});
