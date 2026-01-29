@@ -11,25 +11,64 @@ const examplesDir = join(__dirname, "..", "examples");
 const cliPath = join(__dirname, "..", "packages", "cli", "dist", "cli.js");
 
 /**
- * Get all markdown files in an example directory.
- * Returns array of { input, output, configFile } paths.
+ * Get all outputs to generate for an example directory.
+ * Returns array of { input, output, configFile, name } paths.
+ *
+ * For each .md file:
+ * - Generate default output (using config.yaml if present)
+ * - Generate variant outputs for each {name}.yaml file (e.g., fillable.yaml -> document-fillable.pdf)
  */
-async function getMarkdownFiles(examplePath) {
+async function getExampleOutputs(examplePath) {
 	const entries = await fs.readdir(examplePath, { withFileTypes: true });
 
-	// Check for config.yaml in this example directory
-	const hasConfig = entries.some((e) => e.isFile() && e.name === "config.yaml");
-	const configFile = hasConfig ? join(examplePath, "config.yaml") : null;
+	// Check for config.yaml in this example directory (default config)
+	const hasDefaultConfig = entries.some(
+		(e) => e.isFile() && e.name === "config.yaml",
+	);
+	const defaultConfigFile = hasDefaultConfig
+		? join(examplePath, "config.yaml")
+		: null;
 
-	const mdFiles = entries
-		.filter((e) => e.isFile() && e.name.endsWith(".md"))
+	// Find variant config files (*.yaml but not config.yaml)
+	const variantConfigs = entries
+		.filter(
+			(e) =>
+				e.isFile() && e.name.endsWith(".yaml") && e.name !== "config.yaml",
+		)
 		.map((e) => ({
-			input: join(examplePath, e.name),
-			output: join(examplePath, e.name.replace(/\.md$/, ".pdf")),
-			name: e.name,
-			configFile,
+			name: e.name.replace(/\.yaml$/, ""),
+			path: join(examplePath, e.name),
 		}));
-	return mdFiles;
+
+	const outputs = [];
+
+	// For each markdown file
+	for (const entry of entries) {
+		if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
+
+		const baseName = entry.name.replace(/\.md$/, "");
+		const input = join(examplePath, entry.name);
+
+		// Default output
+		outputs.push({
+			input,
+			output: join(examplePath, `${baseName}.pdf`),
+			name: entry.name,
+			configFile: defaultConfigFile,
+		});
+
+		// Variant outputs (e.g., fillable.yaml -> document-fillable.pdf)
+		for (const variant of variantConfigs) {
+			outputs.push({
+				input,
+				output: join(examplePath, `${baseName}-${variant.name}.pdf`),
+				name: `${entry.name} (${variant.name})`,
+				configFile: variant.path,
+			});
+		}
+	}
+
+	return outputs;
 }
 
 async function regenerateExamples() {
@@ -63,16 +102,16 @@ async function regenerateExamples() {
 
 		for (const dir of exampleDirs) {
 			const examplePath = join(examplesDir, dir);
-			const mdFiles = await getMarkdownFiles(examplePath);
+			const outputs = await getExampleOutputs(examplePath);
 
-			if (mdFiles.length === 0) {
+			if (outputs.length === 0) {
 				console.log(`⚠ Skipping ${dir}: no .md files found`);
 				continue;
 			}
 
 			console.log(`${dir}/`);
 
-			for (const { input, output, name, configFile } of mdFiles) {
+			for (const { input, output, name, configFile } of outputs) {
 				try {
 					const configArg = configFile ? `--config-file "${configFile}"` : "";
 					const result = execSync(
