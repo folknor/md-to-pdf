@@ -230,6 +230,7 @@ export async function addAcroFormFields(
 				});
 				if (field.type === "textarea") {
 					textField.enableMultiline();
+					textField.enableScrolling();
 				}
 			} else if (field.type === "select") {
 				const dropdown = form.createDropdown(field.name);

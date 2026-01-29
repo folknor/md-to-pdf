@@ -333,6 +333,16 @@ export const formFieldsCss = `
   pointer-events: none;
 }
 
+/* Inset marker for inputs/textareas to account for border */
+.form-text .form-marker,
+.form-textarea .form-marker,
+.form-select .form-marker {
+  top: 1px;
+  left: 1px;
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+}
+
 /* For checkbox/radio, the wrapper is inline */
 .form-option .form-input-wrapper {
   display: inline-block;
@@ -380,6 +390,11 @@ export const formFieldsCss = `
   border-radius: 3px;
   font: inherit;
   background: white;
+}
+
+/* In fillable mode, hide the HTML select text so AcroForm shows through empty */
+.form-select[data-form-field] select {
+  color: transparent;
 }
 
 /* Checkboxes and radio buttons */
