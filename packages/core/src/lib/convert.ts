@@ -6,6 +6,7 @@ const require: NodeRequire = createRequire(import.meta.url);
 
 import process from "node:process";
 import type { Browser } from "puppeteer";
+import { admonitionsCss } from "./admonitions.js";
 import { type Config, themes, themesDir } from "./config.js";
 import {
 	type ConversionInfo,
@@ -14,7 +15,6 @@ import {
 import { formatCssErrors, validateCss } from "./css-validator.js";
 import { ConfigError, GenerationError, IncludeError } from "./errors.js";
 import { generateFontStylesheet } from "./fonts.js";
-import { admonitionsCss } from "./admonitions.js";
 import { formFieldsCss } from "./form-fields.js";
 import { generateOutput } from "./generate-output.js";
 import { processIcons } from "./icons.js";

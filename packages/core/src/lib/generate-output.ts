@@ -92,7 +92,9 @@ export async function generateOutput(
 	let selectOptions: Map<string, string[]> | undefined;
 	if (config.fillable && !config.as_html) {
 		const selectData = await page.evaluate(() => {
-			const selects = document.querySelectorAll("[data-form-field][data-field-type='select'] select");
+			const selects = document.querySelectorAll(
+				"[data-form-field][data-field-type='select'] select",
+			);
 			const result: Array<{ name: string; options: string[] }> = [];
 			for (let i = 0; i < selects.length; i++) {
 				const select = selects[i];
@@ -101,7 +103,7 @@ export async function generateOutput(
 				const name = wrapper?.getAttribute("data-field-name");
 				if (!name) continue;
 				const options = Array.from((select as HTMLSelectElement).options).map(
-					(opt) => opt.value || opt.text
+					(opt) => opt.value || opt.text,
 				);
 				result.push({ name, options });
 			}

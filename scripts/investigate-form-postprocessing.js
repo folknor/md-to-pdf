@@ -13,10 +13,12 @@
  */
 
 import { createRequire } from "node:module";
+
 const require = createRequire(import.meta.url);
 
 import { promises as fs } from "node:fs";
 import { join, resolve } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 // Import from workspace packages
@@ -131,9 +133,19 @@ async function generateTestPdf() {
 			return {
 				name: marker.dataset.fieldName,
 				type: marker.dataset.fieldType,
-				marker: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+				marker: {
+					x: rect.x,
+					y: rect.y,
+					width: rect.width,
+					height: rect.height,
+				},
 				input: inputRect
-					? { x: inputRect.x, y: inputRect.y, width: inputRect.width, height: inputRect.height }
+					? {
+							x: inputRect.x,
+							y: inputRect.y,
+							width: inputRect.width,
+							height: inputRect.height,
+						}
 					: null,
 			};
 		});
@@ -250,8 +262,12 @@ async function addFormFields(pdfDoc, pages, fieldPositions, pageInfo) {
 		const pdfFieldHeight = htmlHeight * scale;
 
 		console.log(`\nField: ${field.name}`);
-		console.log(`  HTML: x=${htmlX}, y=${htmlY}, w=${htmlWidth}, h=${htmlHeight}`);
-		console.log(`  PDF:  x=${pdfX.toFixed(1)}, y=${pdfY.toFixed(1)}, w=${pdfFieldWidth.toFixed(1)}, h=${pdfFieldHeight.toFixed(1)}`);
+		console.log(
+			`  HTML: x=${htmlX}, y=${htmlY}, w=${htmlWidth}, h=${htmlHeight}`,
+		);
+		console.log(
+			`  PDF:  x=${pdfX.toFixed(1)}, y=${pdfY.toFixed(1)}, w=${pdfFieldWidth.toFixed(1)}, h=${pdfFieldHeight.toFixed(1)}`,
+		);
 
 		try {
 			const textField = form.createTextField(field.name);
@@ -302,7 +318,9 @@ async function embedPositionsInPdf(pdfPath, fieldPositions, pageInfo) {
 	const metadataMarker = `__MDFORGE_FORM_FIELDS__${JSON.stringify(formMetadata)}__END_MDFORGE__`;
 
 	pdfDoc.setKeywords([...existingKeywords, metadataMarker]);
-	pdfDoc.setSubject("PDF with embedded form field positions for post-processing");
+	pdfDoc.setSubject(
+		"PDF with embedded form field positions for post-processing",
+	);
 
 	const outputPath = join(outputDir, "test-form-with-metadata.pdf");
 	const modifiedBytes = await pdfDoc.save();
@@ -314,16 +332,24 @@ async function embedPositionsInPdf(pdfPath, fieldPositions, pageInfo) {
 	// Verify we can read it back
 	const reloadedPdf = await PDFDocument.load(modifiedBytes);
 	const keywords = reloadedPdf.getKeywords();
-	console.log(`Keywords type: ${typeof keywords}, value: ${JSON.stringify(keywords)?.slice(0, 100)}`);
+	console.log(
+		`Keywords type: ${typeof keywords}, value: ${JSON.stringify(keywords)?.slice(0, 100)}`,
+	);
 
 	// Keywords might be a string or array depending on pdf-lib version
-	const keywordStr = Array.isArray(keywords) ? keywords.join(" ") : (keywords || "");
+	const keywordStr = Array.isArray(keywords)
+		? keywords.join(" ")
+		: keywords || "";
 	const match = keywordStr.match(/__MDFORGE_FORM_FIELDS__(.+?)__END_MDFORGE__/);
 	if (match) {
 		const extracted = JSON.parse(match[1]);
-		console.log(`Successfully extracted ${extracted.fields.length} field definitions from PDF metadata`);
+		console.log(
+			`Successfully extracted ${extracted.fields.length} field definitions from PDF metadata`,
+		);
 	} else {
-		console.log("✗ Failed to extract metadata (might be in a different format)");
+		console.log(
+			"✗ Failed to extract metadata (might be in a different format)",
+		);
 	}
 
 	return outputPath;
@@ -461,51 +487,53 @@ async function fullPipeline() {
 	// Extract field positions
 	const fieldPositions = await page.evaluate(() => {
 		const fields = document.querySelectorAll("[data-field]");
-		return Array.from(fields).map((field) => {
-			const type = field.dataset.type;
-			const options = field.dataset.options?.split(",") || [];
+		return Array.from(fields)
+			.map((field) => {
+				const type = field.dataset.type;
+				const options = field.dataset.options?.split(",") || [];
 
-			// For radio/checkbox groups, get positions of each option
-			if (type === "radio" || type === "checkboxgroup") {
-				const inputs = field.querySelectorAll("input");
-				const optionPositions = Array.from(inputs).map((input, i) => {
-					const rect = input.getBoundingClientRect();
+				// For radio/checkbox groups, get positions of each option
+				if (type === "radio" || type === "checkboxgroup") {
+					const inputs = field.querySelectorAll("input");
+					const optionPositions = Array.from(inputs).map((input, i) => {
+						const rect = input.getBoundingClientRect();
+						return {
+							value: input.value,
+							label: options[i] || input.value,
+							x: rect.x,
+							y: rect.y,
+							width: rect.width,
+							height: rect.height,
+						};
+					});
+					// Get bounding box of the whole group
+					const groupRect = field.getBoundingClientRect();
 					return {
-						value: input.value,
-						label: options[i] || input.value,
-						x: rect.x,
-						y: rect.y,
-						width: rect.width,
-						height: rect.height,
+						name: field.dataset.field,
+						type,
+						options: optionPositions,
+						x: groupRect.x,
+						y: groupRect.y,
+						width: groupRect.width,
+						height: groupRect.height,
 					};
-				});
-				// Get bounding box of the whole group
-				const groupRect = field.getBoundingClientRect();
+				}
+
+				// For single inputs
+				const input = field.querySelector("input, textarea, select");
+				if (!input) return null;
+				const rect = input.getBoundingClientRect();
 				return {
 					name: field.dataset.field,
 					type,
-					options: optionPositions,
-					x: groupRect.x,
-					y: groupRect.y,
-					width: groupRect.width,
-					height: groupRect.height,
+					options,
+					x: rect.x,
+					y: rect.y,
+					width: rect.width,
+					height: rect.height,
 				};
-			}
-
-			// For single inputs
-			const input = field.querySelector("input, textarea, select");
-			if (!input) return null;
-			const rect = input.getBoundingClientRect();
-			return {
-				name: field.dataset.field,
-				type,
-				options,
-				x: rect.x,
-				y: rect.y,
-				width: rect.width,
-				height: rect.height,
-			};
-		}).filter(Boolean);
+			})
+			.filter(Boolean);
 	});
 
 	const pageInfo = await page.evaluate(() => ({
@@ -543,7 +571,9 @@ async function fullPipeline() {
 				const pdfW = field.width * scale;
 				const pdfH = field.height * scale;
 
-				console.log(`    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${pdfW.toFixed(0)}x${pdfH.toFixed(0)}]`);
+				console.log(
+					`    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${pdfW.toFixed(0)}x${pdfH.toFixed(0)}]`,
+				);
 
 				const textField = form.createTextField(field.name);
 				textField.addToPage(firstPage, {
@@ -559,13 +589,14 @@ async function fullPipeline() {
 					textField.enableMultiline();
 				}
 				console.log(`    ✓ Added ${field.type} field`);
-
 			} else if (field.type === "checkbox") {
 				const pdfX = marginPt + field.x * scale;
 				const pdfY = pdfHeight - marginPt - (field.y + field.height) * scale;
 				const size = Math.min(field.width, field.height) * scale;
 
-				console.log(`    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`);
+				console.log(
+					`    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`,
+				);
 
 				const checkbox = form.createCheckBox(field.name);
 				checkbox.addToPage(firstPage, {
@@ -577,18 +608,21 @@ async function fullPipeline() {
 					borderWidth: 1,
 				});
 				console.log(`    ✓ Added checkbox`);
-
 			} else if (field.type === "select") {
 				const pdfX = marginPt + field.x * scale;
 				const pdfY = pdfHeight - marginPt - (field.y + field.height) * scale;
 				const pdfW = field.width * scale;
 				const pdfH = field.height * scale;
 
-				console.log(`    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${pdfW.toFixed(0)}x${pdfH.toFixed(0)}]`);
+				console.log(
+					`    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${pdfW.toFixed(0)}x${pdfH.toFixed(0)}]`,
+				);
 				console.log(`    Options: ${field.options.join(", ")}`);
 
 				const dropdown = form.createDropdown(field.name);
-				dropdown.addOptions(field.options.length > 0 ? field.options : ["Option 1", "Option 2"]);
+				dropdown.addOptions(
+					field.options.length > 0 ? field.options : ["Option 1", "Option 2"],
+				);
 				dropdown.addToPage(firstPage, {
 					x: pdfX,
 					y: pdfY,
@@ -597,8 +631,9 @@ async function fullPipeline() {
 					borderColor: rgb(0.4, 0.4, 0.4),
 					borderWidth: 1,
 				});
-				console.log(`    ✓ Added dropdown with ${field.options.length} options`);
-
+				console.log(
+					`    ✓ Added dropdown with ${field.options.length} options`,
+				);
 			} else if (field.type === "radio") {
 				// Radio button group - each option is a separate radio button
 				console.log(`    Options: ${field.options.length} radio buttons`);
@@ -610,7 +645,9 @@ async function fullPipeline() {
 					const pdfY = pdfHeight - marginPt - (opt.y + opt.height) * scale;
 					const size = Math.min(opt.width, opt.height) * scale;
 
-					console.log(`      - ${opt.value}: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`);
+					console.log(
+						`      - ${opt.value}: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`,
+					);
 
 					radioGroup.addOptionToPage(opt.value, firstPage, {
 						x: pdfX,
@@ -621,8 +658,9 @@ async function fullPipeline() {
 						borderWidth: 1,
 					});
 				}
-				console.log(`    ✓ Added radio group with ${field.options.length} options`);
-
+				console.log(
+					`    ✓ Added radio group with ${field.options.length} options`,
+				);
 			} else if (field.type === "checkboxgroup") {
 				// Checkbox group - each option is a separate checkbox
 				console.log(`    Options: ${field.options.length} checkboxes`);
@@ -632,7 +670,9 @@ async function fullPipeline() {
 					const pdfY = pdfHeight - marginPt - (opt.y + opt.height) * scale;
 					const size = Math.min(opt.width, opt.height) * scale;
 
-					console.log(`      - ${opt.value}: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`);
+					console.log(
+						`      - ${opt.value}: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`,
+					);
 
 					// Each checkbox in a group needs a unique name
 					const checkbox = form.createCheckBox(`${field.name}_${opt.value}`);
@@ -645,7 +685,9 @@ async function fullPipeline() {
 						borderWidth: 1,
 					});
 				}
-				console.log(`    ✓ Added checkbox group with ${field.options.length} checkboxes`);
+				console.log(
+					`    ✓ Added checkbox group with ${field.options.length} checkboxes`,
+				);
 			}
 		} catch (err) {
 			console.log(`    ✗ Error: ${err.message}`);
@@ -653,7 +695,10 @@ async function fullPipeline() {
 	}
 
 	// Save final PDF
-	const outputPath = join(outputDir, `${versionedName("registration-form-fillable")}.pdf`);
+	const outputPath = join(
+		outputDir,
+		`${versionedName("registration-form-fillable")}.pdf`,
+	);
 	await fs.writeFile(outputPath, await pdfDoc.save());
 	console.log(`\nGenerated fillable PDF: ${outputPath}`);
 

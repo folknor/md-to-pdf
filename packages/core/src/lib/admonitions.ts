@@ -54,7 +54,9 @@ export function admonitions(): MarkedExtension {
 					return match?.index;
 				},
 				tokenizer(
-					this: { lexer: { blockTokens: (src: string, tokens: Token[]) => Token[] } },
+					this: {
+						lexer: { blockTokens: (src: string, tokens: Token[]) => Token[] };
+					},
 					src: string,
 				): Tokens.Generic | undefined {
 					const match = startPattern.exec(src);
@@ -81,9 +83,9 @@ export function admonitions(): MarkedExtension {
 
 					for (const line of lines) {
 						// Content lines must be indented (4 spaces or 1 tab) or empty
-						if (line === "" || /^(?:    |\t)/.test(line)) {
+						if (line === "" || /^(?: {4}|\t)/.test(line)) {
 							// Remove the indentation
-							contentLines.push(line.replace(/^(?:    |\t)/, ""));
+							contentLines.push(line.replace(/^(?: {4}|\t)/, ""));
 						} else {
 							break;
 						}

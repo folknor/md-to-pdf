@@ -44,7 +44,9 @@ export interface AcroFormConfig {
  * Parse a marker URL to extract field information.
  * URL format: https://mdforge.marker/{name}?type={type}&value={value}
  */
-function parseMarkerUrl(url: string): { name: string; type: string; value?: string } | null {
+function parseMarkerUrl(
+	url: string,
+): { name: string; type: string; value?: string } | null {
 	if (!url.startsWith(MARKER_URL_PREFIX)) return null;
 
 	try {
@@ -53,7 +55,7 @@ function parseMarkerUrl(url: string): { name: string; type: string; value?: stri
 		const type = urlObj.searchParams.get("type");
 		const value = urlObj.searchParams.get("value") || undefined;
 
-		if (!name || !type) return null;
+		if (!(name && type)) return null;
 		return { name, type, value };
 	} catch {
 		return null;
@@ -76,7 +78,7 @@ function extractAndRemoveMarkers(pdfDoc: PDFDocument): FieldPosition[] {
 		if (!annotsRef) continue;
 
 		const annots = page.node.context.lookup(annotsRef);
-		if (!annots || !(annots instanceof PDFArray)) continue;
+		if (!(annots && annots instanceof PDFArray)) continue;
 
 		// Collect indices of marker annotations to remove
 		const toRemove: number[] = [];
@@ -84,7 +86,7 @@ function extractAndRemoveMarkers(pdfDoc: PDFDocument): FieldPosition[] {
 		for (let j = 0; j < annots.size(); j++) {
 			const annotRef = annots.get(j);
 			const annotObj = page.node.context.lookup(annotRef);
-			if (!annotObj || !(annotObj instanceof PDFDict)) continue;
+			if (!(annotObj && annotObj instanceof PDFDict)) continue;
 			const annot = annotObj;
 
 			// Check if it's a Link annotation
@@ -96,7 +98,7 @@ function extractAndRemoveMarkers(pdfDoc: PDFDocument): FieldPosition[] {
 			if (!actionRef) continue;
 
 			const actionObj = page.node.context.lookup(actionRef);
-			if (!actionObj || !(actionObj instanceof PDFDict)) continue;
+			if (!(actionObj && actionObj instanceof PDFDict)) continue;
 			const action = actionObj;
 
 			const uriObj = action.get(PDFName.of("URI"));
@@ -104,9 +106,10 @@ function extractAndRemoveMarkers(pdfDoc: PDFDocument): FieldPosition[] {
 
 			// Extract URL string (it's in format "(url)")
 			const urlRaw = uriObj.toString();
-			const url = urlRaw.startsWith("(") && urlRaw.endsWith(")")
-				? urlRaw.slice(1, -1)
-				: urlRaw;
+			const url =
+				urlRaw.startsWith("(") && urlRaw.endsWith(")")
+					? urlRaw.slice(1, -1)
+					: urlRaw;
 
 			// Check if it's a marker URL
 			const markerInfo = parseMarkerUrl(url);
@@ -114,9 +117,9 @@ function extractAndRemoveMarkers(pdfDoc: PDFDocument): FieldPosition[] {
 
 			// Get the rectangle [llx, lly, urx, ury]
 			const rectObj = annot.get(PDFName.of("Rect"));
-			if (!rectObj || !(rectObj instanceof PDFArray)) continue;
+			if (!(rectObj && rectObj instanceof PDFArray)) continue;
 
-			const rect = rectObj.asArray().map(n => {
+			const rect = rectObj.asArray().map((n) => {
 				const num = n.toString();
 				return Number.parseFloat(num);
 			});
@@ -124,7 +127,13 @@ function extractAndRemoveMarkers(pdfDoc: PDFDocument): FieldPosition[] {
 			if (rect.length !== 4) continue;
 
 			const [llx, lly, urx, ury] = rect;
-			if (llx === undefined || lly === undefined || urx === undefined || ury === undefined) continue;
+			if (
+				llx === undefined ||
+				lly === undefined ||
+				urx === undefined ||
+				ury === undefined
+			)
+				continue;
 
 			fields.push({
 				name: markerInfo.name,

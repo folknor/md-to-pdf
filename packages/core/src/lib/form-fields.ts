@@ -143,13 +143,12 @@ export function formFields(options: FormFieldsOptions = {}): MarkedExtension {
 					};
 				},
 				renderer(token: Tokens.Generic): string {
-					const { fieldType, name, label, options } =
-						token as unknown as {
-							fieldType: FieldType;
-							name: string;
-							label: string;
-							options: Array<{ text: string; value: string }>;
-						};
+					const { fieldType, name, label, options } = token as unknown as {
+						fieldType: FieldType;
+						name: string;
+						label: string;
+						options: Array<{ text: string; value: string }>;
+					};
 
 					if (fieldType === "select") {
 						if (fillable) {
@@ -185,19 +184,19 @@ ${itemsHtml}
 					if (fieldType === "checklist" || fieldType === "radiolist") {
 						const inputType = fieldType === "checklist" ? "checkbox" : "radio";
 						const itemsHtml = options
-							.map(
-								(o) => {
-									const optionDataAttrs = fillable
-										? `data-form-field data-field-name="${name}" data-field-type="${inputType}" data-field-value="${o.value}"`
-										: "";
-									const inputHtml = `<input type="${inputType}" name="${name}" value="${o.value}">`;
-									const wrappedInput = fillable ? wrapWithMarker(inputHtml, name, inputType, o.value) : inputHtml;
-									return `<label class="form-option" ${optionDataAttrs}>
+							.map((o) => {
+								const optionDataAttrs = fillable
+									? `data-form-field data-field-name="${name}" data-field-type="${inputType}" data-field-value="${o.value}"`
+									: "";
+								const inputHtml = `<input type="${inputType}" name="${name}" value="${o.value}">`;
+								const wrappedInput = fillable
+									? wrapWithMarker(inputHtml, name, inputType, o.value)
+									: inputHtml;
+								return `<label class="form-option" ${optionDataAttrs}>
 ${wrappedInput}
 <span>${o.text}</span>
 </label>`;
-								},
-							)
+							})
 							.join("\n");
 
 						return `<fieldset class="form-field form-${fieldType}">
@@ -226,7 +225,9 @@ ${itemsHtml}
 					if (match) {
 						const label = match[1]?.trim() ?? "";
 						const questionMarks = match[2] ?? "??";
-						const lineCount = match[3] ? Number.parseInt(match[3], 10) : undefined;
+						const lineCount = match[3]
+							? Number.parseInt(match[3], 10)
+							: undefined;
 						const name =
 							match[4]?.trim() ?? label.toLowerCase().replace(/\s+/g, "_");
 
@@ -261,7 +262,9 @@ ${itemsHtml}
 						const lines = lineCount ?? 4;
 						const heightStyle = `style="height: ${lines * 1.5}em"`;
 						const textareaHtml = `<textarea name="${name}" ${heightStyle}></textarea>`;
-						const wrappedTextarea = fillable ? wrapWithMarker(textareaHtml, name, "textarea") : textareaHtml;
+						const wrappedTextarea = fillable
+							? wrapWithMarker(textareaHtml, name, "textarea")
+							: textareaHtml;
 						return `<label class="form-field form-textarea" ${dataAttrs}>
 ${label ? `<span class="form-label">${label}</span>` : ""}
 ${wrappedTextarea}
@@ -270,7 +273,9 @@ ${wrappedTextarea}
 
 					// Text input
 					const inputHtml = `<input type="text" name="${name}">`;
-					const wrappedInput = fillable ? wrapWithMarker(inputHtml, name, "text") : inputHtml;
+					const wrappedInput = fillable
+						? wrapWithMarker(inputHtml, name, "text")
+						: inputHtml;
 					return `<label class="form-field form-text" ${dataAttrs}>
 ${label ? `<span class="form-label">${label}</span>` : ""}
 ${wrappedInput}
@@ -292,7 +297,12 @@ export const MARKER_URL_PREFIX = "https://mdforge.marker/";
  * The marker link overlays the input element to capture its full dimensions
  * as a PDF link annotation rectangle.
  */
-function wrapWithMarker(inputHtml: string, name: string, type: string, value?: string): string {
+function wrapWithMarker(
+	inputHtml: string,
+	name: string,
+	type: string,
+	value?: string,
+): string {
 	const params = new URLSearchParams({ type });
 	if (value) params.set("value", value);
 	const markerUrl = `${MARKER_URL_PREFIX}${encodeURIComponent(name)}?${params}`;

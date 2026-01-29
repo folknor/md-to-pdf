@@ -29,6 +29,6 @@
 	"repository": "folknor/mdforge",
 	"homepage": "https://github.com/folknor/mdforge",
 	"devDependencies": {
-		"@biomejs/biome": "^2.3.12"
+		"@biomejs/biome": "^2.3.13"
 	}
 }
