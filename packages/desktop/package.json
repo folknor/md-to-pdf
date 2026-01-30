@@ -19,14 +19,15 @@
 	},
 	"dependencies": {
 		"@mdforge/core": "workspace:*",
+		"fflate": "^0.8.2",
 		"puppeteer": "^24.36.1"
 	},
 	"devDependencies": {
 		"@electron-toolkit/utils": "^4.0.0",
+		"@tailwindcss/postcss": "^4.1.18",
 		"@types/react": "^19.2.10",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^5.1.2",
-		"@tailwindcss/postcss": "^4.1.18",
 		"electron": "^40.1.0",
 		"electron-builder": "^26.4.0",
 		"electron-vite": "^5.0.0",
