@@ -11,7 +11,6 @@
  * 4. Remove the marker annotations
  */
 
-import fontkit from "@pdf-lib/fontkit";
 import {
 	PDFArray,
 	PDFDict,
@@ -20,6 +19,7 @@ import {
 	PDFName,
 	rgb,
 } from "@folknor/pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import type { EmbeddedFontData } from "./fonts.js";
 import { MARKER_URL_PREFIX } from "./form-fields.js";
 
@@ -239,7 +239,9 @@ export async function addAcroFormFields(
 			try {
 				// biome-ignore lint/suspicious/noExplicitAny: fontkit types don't match exactly
 				pdfDoc.registerFontkit(fontkit as any);
-				customFont = await pdfDoc.embedFont(fontData.data as Uint8Array<ArrayBuffer>);
+				customFont = await pdfDoc.embedFont(
+					fontData.data as Uint8Array<ArrayBuffer>,
+				);
 			} catch {
 				// Font embedding failed - continue with default Helvetica
 			}

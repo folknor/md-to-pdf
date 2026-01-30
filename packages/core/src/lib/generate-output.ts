@@ -55,8 +55,8 @@ async function detectSystemFont(
 			timeout: 5000,
 		}).trim();
 
-		if (!fontFile || !fontFile.match(/\.(ttf|otf|woff2?)$/i)) {
-			return undefined;
+		if (!(fontFile && fontFile.match(/\.(ttf|otf|woff2?)$/i))) {
+			return;
 		}
 
 		// Read the font file
@@ -70,7 +70,7 @@ async function detectSystemFont(
 		};
 	} catch {
 		// fc-match not available or font not found
-		return undefined;
+		return;
 	}
 }
 
@@ -160,15 +160,20 @@ export async function generateOutput(
 			const input = document.querySelector(
 				"[data-form-field] input, [data-form-field] select, [data-form-field] textarea",
 			);
-			if (!input) return undefined;
+			if (!input) return;
 			const style = window.getComputedStyle(input);
-			const fontFamily = style.fontFamily.split(",")[0]?.trim().replace(/['"]/g, "") || "Helvetica";
+			const fontFamily =
+				style.fontFamily.split(",")[0]?.trim().replace(/['"]/g, "") ||
+				"Helvetica";
 			const fontSize = parseFloat(style.fontSize) || 12;
 			return { fontFamily, fontSize };
 		});
 
 		// If no embedded fonts from Google Fonts, try to detect system font file
-		if ((!options.embeddedFonts || options.embeddedFonts.length === 0) && formFontInfo) {
+		if (
+			(!options.embeddedFonts || options.embeddedFonts.length === 0) &&
+			formFontInfo
+		) {
 			const systemFontData = await detectSystemFont(formFontInfo.fontFamily);
 			if (systemFontData) {
 				options.embeddedFonts = [systemFontData];

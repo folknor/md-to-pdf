@@ -53,7 +53,7 @@ async function getExampleOutputs(examplePath) {
 
 	// For each markdown file
 	for (const entry of entries) {
-		if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
+		if (!(entry.isFile() && entry.name.endsWith(".md"))) continue;
 
 		const baseName = entry.name.replace(/\.md$/, "");
 		const input = join(examplePath, entry.name);
