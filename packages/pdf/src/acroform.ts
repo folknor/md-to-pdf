@@ -20,8 +20,22 @@ import {
   rgb,
 } from "@folknor/pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
-import type { EmbeddedFontData } from "./fonts.js";
-import { MARKER_URL_PREFIX } from "./form-fields.js";
+
+/**
+ * Marker URL prefix used to identify form field markers in PDF link annotations.
+ * Must match the prefix used in @mdforge/core form-fields.ts
+ */
+export const MARKER_URL_PREFIX = "https://mdforge.marker/";
+
+/**
+ * Font data for embedding in PDF form fields.
+ */
+export interface FontData {
+  family: string;
+  data: Uint8Array;
+  weight: number;
+  style: string;
+}
 
 /**
  * Position information for a form field extracted from marker annotations.
@@ -53,7 +67,7 @@ export interface AcroFormConfig {
     fontSize: number;
   };
   /** Embedded font data for form fields */
-  embeddedFonts?: EmbeddedFontData[];
+  embeddedFonts?: FontData[];
 }
 
 /**

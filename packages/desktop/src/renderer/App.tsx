@@ -1,4 +1,4 @@
-import type { Theme } from "@mdforge/core/browser";
+import type { Theme } from "@mdforge/renderer-electron/browser";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import type {

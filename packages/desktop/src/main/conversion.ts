@@ -1,25 +1,9 @@
-import { type Config, convertMdToPdf, defaultConfig } from "@mdforge/core";
-import puppeteer, { type Browser } from "puppeteer";
+import {
+  type Config,
+  convertMdToPdf,
+  defaultConfig,
+} from "@mdforge/renderer-electron";
 import type { ConversionConfig, ConversionResult } from "../types";
-
-let browser: Browser | null = null;
-
-export async function getBrowser(): Promise<Browser> {
-  if (!browser?.connected) {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: ["--disable-gpu", "--no-sandbox"],
-    });
-  }
-  return browser;
-}
-
-export async function closeBrowserInstance(): Promise<void> {
-  if (browser) {
-    await browser.close();
-    browser = null;
-  }
-}
 
 export async function convertFile(
   filePath: string,
@@ -28,7 +12,6 @@ export async function convertFile(
 ): Promise<ConversionResult> {
   const outputPath = config.outputPath ?? "";
   try {
-    const browserInstance = await getBrowser();
     const mergedConfig: Partial<Config> = {
       ...defaultConfig,
       dest: outputPath,
@@ -51,7 +34,6 @@ export async function convertFile(
     const result = await convertMdToPdf(
       { path: filePath },
       mergedConfig as Config,
-      { browser: browserInstance },
     );
 
     onProgress?.(100);

@@ -13,6 +13,30 @@
     "./browser": {
       "types": "./dist/browser.d.ts",
       "default": "./dist/browser.js"
+    },
+    "./prepare": {
+      "types": "./dist/lib/prepare.d.ts",
+      "default": "./dist/lib/prepare.js"
+    },
+    "./errors": {
+      "types": "./dist/lib/errors.d.ts",
+      "default": "./dist/lib/errors.js"
+    },
+    "./conversion-info": {
+      "types": "./dist/lib/conversion-info.d.ts",
+      "default": "./dist/lib/conversion-info.js"
+    },
+    "./fonts": {
+      "types": "./dist/lib/fonts.d.ts",
+      "default": "./dist/lib/fonts.js"
+    },
+    "./includes": {
+      "types": "./dist/lib/includes.d.ts",
+      "default": "./dist/lib/includes.js"
+    },
+    "./util": {
+      "types": "./dist/lib/util.d.ts",
+      "default": "./dist/lib/util.js"
     }
   },
   "files": [
@@ -27,7 +51,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@pdf-lib/fontkit": "^1.1.1",
+    "@mdforge/pdf": "workspace:*",
     "font-list": "^2.0.1",
     "github-slugger": "^2.0.0",
     "highlight.js": "^11.11.1",
@@ -36,15 +60,14 @@
     "marked-highlight": "^2.2.3",
     "marked-linkify-it": "^3.1.14",
     "marked-smartypants": "^1.1.11",
-    "@folknor/pdf-lib": "file:/home/folk/Programs/pdf-lib",
     "postcss": "^8.5.6",
-    "puppeteer": "^24.36.1",
     "transliteration": "^2.6.1",
     "yaml": "^2.8.2"
   },
   "devDependencies": {
     "@types/linkify-it": "^5.0.0",
     "google-font-metadata": "^6.0.8",
+    "puppeteer": "^24.36.1",
     "typescript": "5.9.3"
   },
   "license": "MIT"

@@ -16,7 +16,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@mdforge/core": "workspace:*",
+    "@mdforge/renderer-puppeteer": "workspace:*",
     "arg": "^5.0.2",
     "listr": "^0.14.3",
     "yaml": "^2.8.2"

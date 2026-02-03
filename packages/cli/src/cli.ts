@@ -12,7 +12,7 @@ import {
   defaultConfig,
   formatConversionInfo,
   resolveFileRefs,
-} from "@mdforge/core";
+} from "@mdforge/renderer-puppeteer";
 import arg from "arg";
 import Listr from "listr";
 import YAML from "yaml";

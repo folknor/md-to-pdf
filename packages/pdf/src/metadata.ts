@@ -16,9 +16,9 @@ export interface PdfMetadata {
  * Inject metadata into a PDF buffer
  */
 export async function injectPdfMetadata(
-  pdfBuffer: Buffer,
+  pdfBuffer: Buffer | Uint8Array,
   metadata: PdfMetadata,
-): Promise<Buffer> {
+): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.load(new Uint8Array(pdfBuffer));
 
   if (metadata.title) {
@@ -43,6 +43,5 @@ export async function injectPdfMetadata(
   // Always set modification date to now
   pdfDoc.setModificationDate(new Date());
 
-  const modifiedPdf = await pdfDoc.save();
-  return Buffer.from(modifiedPdf);
+  return pdfDoc.save();
 }

@@ -1,4 +1,4 @@
-import type { Theme } from "@mdforge/core";
+import type { Theme } from "@mdforge/renderer-electron/browser";
 
 export interface ConversionConfig {
   theme?: Theme;

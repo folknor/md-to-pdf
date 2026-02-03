@@ -1,28 +1,28 @@
+/**
+ * Puppeteer-based renderer for mdforge.
+ *
+ * Takes a PreparedConversion from @mdforge/core and renders it to PDF or HTML.
+ */
+
 import { execSync } from "node:child_process";
 import { promises as fs } from "node:fs";
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import type { EmbeddedFontData } from "@mdforge/core/fonts";
+import type { PreparedConversion } from "@mdforge/core/prepare";
+import { addAcroFormFields, injectPdfMetadata } from "@mdforge/pdf";
 import puppeteer, { type Browser } from "puppeteer";
-import { addAcroFormFields } from "./acroform.js";
-import type { Config } from "./config.js";
-import type { EmbeddedFontData } from "./fonts.js";
-import { injectPdfMetadata } from "./pdf-metadata.js";
-import { isHttpUrl } from "./util.js";
 
-export type Output = PdfOutput | HtmlOutput;
+/**
+ * Result of rendering a document.
+ */
+export interface RenderResult {
+  /** The rendered content (PDF buffer or HTML string) */
+  content: Buffer | Uint8Array | string;
 
-export interface PdfOutput extends BasicOutput {
-  content: Buffer | Uint8Array;
-}
-
-export interface HtmlOutput extends BasicOutput {
-  content: string;
-  headerTemplate?: string;
-  footerTemplate?: string;
-}
-
-interface BasicOutput {
-  filename: string | undefined;
+  /** For fillable mode: extracted field info from DOM */
+  fillableData?: {
+    selectOptions: Map<string, string[]>;
+    formFontInfo: { fontFamily: string; fontSize: number };
+  };
 }
 
 /**
@@ -33,13 +33,9 @@ let browserPromise: Promise<Browser> | undefined;
 /**
  * Close the browser instance.
  */
-export const closeBrowser = async (): Promise<void> => {
+export async function closeBrowser(): Promise<void> {
   await (await browserPromise)?.close();
-};
-
-/** Options for output generation */
-interface GenerateOutputOptions {
-  embeddedFonts?: EmbeddedFontData[];
+  browserPromise = undefined;
 }
 
 /**
@@ -75,17 +71,20 @@ async function detectSystemFont(
 }
 
 /**
- * Generate the output (either PDF or HTML).
+ * Render a prepared conversion to PDF or HTML.
+ *
+ * @param prepared - The prepared conversion from @mdforge/core
+ * @param browserRef - Optional browser instance to reuse
+ * @returns The rendered content
  */
-export async function generateOutput(
-  html: string,
-  relativePath: string,
-  config: Config,
+export async function render(
+  prepared: PreparedConversion,
   browserRef?: Browser,
-  options: GenerateOutputOptions = {},
-): Promise<Output> {
+): Promise<RenderResult> {
+  const { config } = prepared;
+
+  // Get or create browser
   async function getBrowser(): Promise<Browser> {
-    // biome-ignore lint/nursery/noUnnecessaryConditions: browserRef is an optional param that may be undefined
     if (browserRef) {
       return browserRef;
     }
@@ -98,30 +97,28 @@ export async function generateOutput(
   }
 
   const browser = await getBrowser();
-
   const page = await browser.newPage();
 
   // Inject <base> tag so relative paths in markdown resolve correctly
-  const baseUrl = pathToFileURL(
-    `${resolve(config.basedir, relativePath)}/`,
-  ).href;
-  const htmlWithBase = html.replace("<head>", `<head><base href="${baseUrl}">`);
+  const htmlWithBase = prepared.html.replace(
+    "<head>",
+    `<head><base href="${prepared.baseUrl}">`,
+  );
   await page.setContent(htmlWithBase, { waitUntil: "domcontentloaded" });
 
-  for (const stylesheet of config.stylesheet) {
-    // If stylesheet contains newlines or {, it's CSS content (from @file resolution)
-    // Otherwise it's a URL or path
-    const isCssContent = stylesheet.includes("\n") || stylesheet.includes("{");
-    await page.addStyleTag(
-      isHttpUrl(stylesheet)
-        ? { url: stylesheet }
-        : isCssContent
-          ? { content: stylesheet }
-          : { path: stylesheet },
-    );
+  // Add stylesheets
+  for (const stylesheet of prepared.stylesheets) {
+    if (stylesheet.type === "url") {
+      await page.addStyleTag({ url: stylesheet.value });
+    } else if (stylesheet.type === "content") {
+      await page.addStyleTag({ content: stylesheet.value });
+    } else {
+      await page.addStyleTag({ path: stylesheet.value });
+    }
   }
 
-  for (const scriptTagOptions of config.script) {
+  // Add scripts
+  for (const scriptTagOptions of prepared.scripts) {
     await page.addScriptTag(scriptTagOptions);
   }
 
@@ -131,6 +128,8 @@ export async function generateOutput(
   // Extract form field info if fillable mode is enabled
   let selectOptions: Map<string, string[]> | undefined;
   let formFontInfo: { fontFamily: string; fontSize: number } | undefined;
+  let embeddedFonts = prepared.embeddedFonts;
+
   if (config.fillable && !config.as_html) {
     // Extract select options (not encoded in marker URLs)
     const selectData = await page.evaluate(() => {
@@ -170,13 +169,10 @@ export async function generateOutput(
     });
 
     // If no embedded fonts from Google Fonts, try to detect system font file
-    if (
-      (!options.embeddedFonts || options.embeddedFonts.length === 0) &&
-      formFontInfo
-    ) {
+    if ((!embeddedFonts || embeddedFonts.length === 0) && formFontInfo) {
       const systemFontData = await detectSystemFont(formFontInfo.fontFamily);
       if (systemFontData) {
-        options.embeddedFonts = [systemFontData];
+        embeddedFonts = [systemFontData];
       }
     }
   }
@@ -188,7 +184,7 @@ export async function generateOutput(
   } else {
     await page.emulateMediaType(config.page_media_type);
     const pdfOptions = {
-      ...config.pdf_options,
+      ...prepared.pdfOptions,
       outline: true,
     };
     outputFileContent = await page.pdf(pdfOptions);
@@ -198,15 +194,14 @@ export async function generateOutput(
 
   if (config.as_html) {
     return {
-      filename: config.dest,
       content: outputFileContent as string,
-      headerTemplate: config.pdf_options.headerTemplate,
-      footerTemplate: config.pdf_options.footerTemplate,
     };
   }
 
-  // Inject PDF metadata if configured
+  // Post-process PDF
   let pdfContent = outputFileContent as Buffer | Uint8Array;
+
+  // Inject PDF metadata if configured
   if (config.metadata) {
     const metadata = {
       ...config.metadata,
@@ -227,17 +222,19 @@ export async function generateOutput(
   }
 
   // Add AcroForm fields if fillable mode is enabled
-  // The marker-based approach reads field positions from PDF link annotations
   if (config.fillable) {
     pdfContent = await addAcroFormFields(Buffer.from(pdfContent), {
       selectOptions,
       formFontInfo,
-      embeddedFonts: options.embeddedFonts,
+      embeddedFonts,
     });
   }
 
   return {
-    filename: config.dest,
     content: pdfContent,
+    fillableData:
+      selectOptions && formFontInfo
+        ? { selectOptions, formFontInfo }
+        : undefined,
   };
 }

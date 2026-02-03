@@ -18,9 +18,8 @@
     "package:mac": "electron-builder --mac zip"
   },
   "dependencies": {
-    "@mdforge/core": "workspace:*",
-    "fflate": "^0.8.2",
-    "puppeteer": "^24.36.1"
+    "@mdforge/renderer-electron": "workspace:*",
+    "fflate": "^0.8.2"
   },
   "devDependencies": {
     "@electron-toolkit/utils": "^4.0.0",

@@ -1,11 +1,13 @@
+/**
+ * Prepare conversion - processes markdown and config, returns everything needed for rendering.
+ * This module contains no browser dependencies.
+ */
+
 import { promises as fs } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, dirname, relative, resolve } from "node:path";
-
-const require: NodeRequire = createRequire(import.meta.url);
-
 import process from "node:process";
-import type { Browser } from "puppeteer";
+import type { FrameAddScriptTagOptions, PDFOptions } from "puppeteer";
 import { admonitionsCss } from "./admonitions.js";
 import { type Config, themes, themesDir } from "./config.js";
 import {
@@ -13,10 +15,9 @@ import {
   createConversionInfo,
 } from "./conversion-info.js";
 import { formatCssErrors, validateCss } from "./css-validator.js";
-import { ConfigError, GenerationError, IncludeError } from "./errors.js";
-import { generateFontStylesheet } from "./fonts.js";
+import { ConfigError, IncludeError } from "./errors.js";
+import { type EmbeddedFontData, generateFontStylesheet } from "./fonts.js";
 import { formFieldsCss } from "./form-fields.js";
-import { generateOutput } from "./generate-output.js";
 import { processIcons } from "./icons.js";
 import { processIncludes } from "./includes.js";
 import { getHtml } from "./markdown.js";
@@ -35,35 +36,79 @@ import {
 import { formatValidationErrors, validateConfig } from "./validate-config.js";
 import { processXref } from "./xref.js";
 
-// Chrome 131+ supports @page margin boxes natively, no paged.js polyfill needed
+const require: NodeRequire = createRequire(import.meta.url);
 
 /** Options that can be passed from CLI or other callers */
-interface ConvertOptions {
+export interface ConvertOptions {
   "--as-html"?: boolean;
   "--fillable"?: boolean;
 }
 
-/** Output from convertMdToPdf */
-export interface ConvertResult {
-  filename: string | undefined;
-  content: Buffer | Uint8Array | string;
-  info: ConversionInfo;
+/** Stylesheet entry - either a file path or inline CSS content */
+export interface StylesheetEntry {
+  type: "path" | "content" | "url";
+  value: string;
 }
 
 /**
- * Convert markdown to pdf.
+ * Everything needed to render the document.
+ * This is the output of prepareConversion() and input to render().
  */
-export const convertMdToPdf = async (
+export interface PreparedConversion {
+  /** The complete HTML document */
+  html: string;
+
+  /** Stylesheets to add to the page */
+  stylesheets: StylesheetEntry[];
+
+  /** Scripts to add to the page */
+  scripts: FrameAddScriptTagOptions[];
+
+  /** PDF options for the renderer */
+  pdfOptions: PDFOptions;
+
+  /** Base URL for resolving relative paths */
+  baseUrl: string;
+
+  /** The processed config */
+  config: Config;
+
+  /** Embedded font data for fillable forms */
+  embeddedFonts?: EmbeddedFontData[];
+
+  /** Conversion info for CLI output */
+  info: ConversionInfo;
+
+  /** Output destination path */
+  dest: string | undefined;
+}
+
+/**
+ * Prepare a markdown document for rendering.
+ *
+ * This function:
+ * - Reads and parses the markdown file
+ * - Merges config from defaults, config file, front matter, and CLI args
+ * - Resolves themes, fonts, stylesheets
+ * - Processes includes, icons, cross-references
+ * - Generates header/footer CSS or templates
+ * - Converts markdown to HTML
+ *
+ * It does NOT:
+ * - Launch a browser
+ * - Render the HTML
+ * - Generate PDF
+ *
+ * @param input - Markdown file path or content
+ * @param config - Configuration
+ * @param args - CLI arguments
+ * @returns Everything needed for rendering
+ */
+export async function prepareConversion(
   input: { path: string } | { content: string },
   config: Config,
-  {
-    args = {},
-    browser,
-  }: {
-    args?: ConvertOptions;
-    browser?: Browser;
-  } = {},
-): Promise<ConvertResult> => {
+  args: ConvertOptions = {},
+): Promise<PreparedConversion> {
   // Track conversion info for CLI output
   const info = createConversionInfo();
 
@@ -100,8 +145,6 @@ export const convertMdToPdf = async (
   if (validationErrors.length > 0) {
     info.warnings.push(formatValidationErrors(validationErrors));
   }
-
-  // Note: displayHeaderFooter auto-enable is handled after simplified header/footer processing below
 
   const arrayOptions = ["body_class", "script", "stylesheet"] as const;
 
@@ -376,12 +419,12 @@ export const convertMdToPdf = async (
 
   config.stylesheet = [...new Set([...config.stylesheet, highlightStylesheet])];
 
-  // Validate stylesheets exist and have valid syntax before passing to Puppeteer
-  const validatedStylesheets: string[] = [];
+  // Validate stylesheets exist and have valid syntax
+  const validatedStylesheets: StylesheetEntry[] = [];
   for (const stylesheet of config.stylesheet) {
     // Skip URLs
     if (stylesheet.startsWith("http")) {
-      validatedStylesheets.push(stylesheet);
+      validatedStylesheets.push({ type: "url", value: stylesheet });
       continue;
     }
 
@@ -394,7 +437,7 @@ export const convertMdToPdf = async (
       if (!result.valid) {
         info.warnings.push(...formatCssErrors(result.errors, "inline CSS"));
       }
-      validatedStylesheets.push(stylesheet);
+      validatedStylesheets.push({ type: "content", value: stylesheet });
     } else {
       // It's a file path - check if file exists
       try {
@@ -407,7 +450,7 @@ export const convertMdToPdf = async (
             ...formatCssErrors(result.errors, basename(stylesheet)),
           );
         }
-        validatedStylesheets.push(stylesheet);
+        validatedStylesheets.push({ type: "path", value: stylesheet });
       } catch (error) {
         const err = error as NodeJS.ErrnoException;
         if (err.code === "ENOENT") {
@@ -418,58 +461,22 @@ export const convertMdToPdf = async (
       }
     }
   }
-  config.stylesheet = validatedStylesheets;
 
   const html = getHtml(processedMd, config);
 
   const relativePath =
     "path" in input ? relative(config.basedir, input.path) : ".";
-
-  let output: Awaited<ReturnType<typeof generateOutput>>;
-  try {
-    output = await generateOutput(html, relativePath, config, browser, {
-      embeddedFonts,
-    });
-  } catch (error) {
-    const err = error as Error;
-    const outputType = config.as_html ? "HTML" : "PDF";
-    // Provide context about what failed
-    if (err.message.includes("Browser") || err.message.includes("browser")) {
-      throw new GenerationError(
-        `Failed to create ${outputType}: Could not launch browser. Is Puppeteer installed correctly?`,
-        err,
-      );
-    }
-    if (err.message.includes("timeout") || err.message.includes("Timeout")) {
-      throw new GenerationError(
-        `Failed to create ${outputType}: Page load timed out. Check for slow-loading resources.`,
-        err,
-      );
-    }
-    throw new GenerationError(
-      `Failed to create ${outputType}: ${err.message}`,
-      err,
-    );
-  }
-
-  if (output.filename) {
-    if (output.filename === "stdout") {
-      process.stdout.write(output.content);
-    } else {
-      await fs.writeFile(output.filename, output.content);
-    }
-  }
-
-  // Track output info
-  if (output.filename) {
-    info.output = {
-      path: output.filename,
-    };
-  }
+  const baseUrl = `file://${resolve(config.basedir, relativePath)}/`;
 
   return {
-    filename: output.filename,
-    content: output.content,
+    html,
+    stylesheets: validatedStylesheets,
+    scripts: config.script,
+    pdfOptions: config.pdf_options,
+    baseUrl,
+    config,
+    embeddedFonts,
     info,
+    dest: config.dest,
   };
-};
+}

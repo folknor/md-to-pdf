@@ -2,7 +2,6 @@ import { join } from "node:path";
 import process from "node:process";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, shell } from "electron";
-import { closeBrowserInstance } from "./conversion";
 import { setupIpcHandlers } from "./ipc";
 
 let mainWindow: BrowserWindow | null = null;
@@ -64,6 +63,4 @@ app.on("window-all-closed", () => {
   }
 });
 
-app.on("before-quit", async () => {
-  await closeBrowserInstance();
-});
+// No cleanup needed - Electron renderer uses the app's own BrowserWindow
