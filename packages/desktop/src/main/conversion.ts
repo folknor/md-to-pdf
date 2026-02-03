@@ -1,3 +1,4 @@
+import process from "node:process";
 import {
   type Config,
   convertMdToPdf,
@@ -11,9 +12,10 @@ import type {
 } from "../types";
 
 // Simple logger - enable with MDFORGE_DEBUG=1
-const DEBUG = process.env.MDFORGE_DEBUG === "1";
+const DEBUG: boolean = process.env["MDFORGE_DEBUG"] === "1";
 function log(...args: unknown[]): void {
   if (DEBUG) {
+    // biome-ignore lint/suspicious/noConsole: Debug logging
     console.log("[desktop:conversion]", ...args);
   }
 }

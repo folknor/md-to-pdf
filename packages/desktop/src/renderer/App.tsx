@@ -97,20 +97,20 @@ export default function App(): React.ReactElement {
 
     // Start watching the file
     const watchedFile = selectedFile;
-    window.electron.watchFile(watchedFile);
+    void window.electron.watchFile(watchedFile);
     watchedFileRef.current = watchedFile;
 
     // Listen for file changes
     const unsubscribe = window.electron.onFileChanged((filePath) => {
       if (filePath === watchedFile) {
-        generatePreview(watchedFile);
+        void generatePreview(watchedFile);
       }
     });
 
-    return () => {
+    return (): void => {
       unsubscribe();
       if (watchedFileRef.current) {
-        window.electron.unwatchFile(watchedFileRef.current);
+        void window.electron.unwatchFile(watchedFileRef.current);
         watchedFileRef.current = null;
       }
     };
@@ -119,7 +119,7 @@ export default function App(): React.ReactElement {
   // Generate preview when selected file or config changes
   useEffect(() => {
     if (selectedFile) {
-      generatePreview(selectedFile);
+      void generatePreview(selectedFile);
     } else {
       setPreviewData(null);
       setPreviewError(null);
@@ -277,7 +277,7 @@ export default function App(): React.ReactElement {
           error={previewError}
           fileName={
             selectedFile
-              ? files.find((f) => f.path === selectedFile)?.name ?? null
+              ? (files.find((f) => f.path === selectedFile)?.name ?? null)
               : null
           }
           generatedAt={previewGeneratedAt}

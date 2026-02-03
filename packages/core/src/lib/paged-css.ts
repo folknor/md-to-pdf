@@ -145,7 +145,6 @@ async function processImages(text: string, baseDir: string): Promise<string> {
  * Map page number format to CSS counter style
  */
 function formatToCssCounterStyle(format?: PageNumberFormat): string {
-  // biome-ignore lint/nursery/noUnnecessaryConditions: format can be undefined, switch default handles it
   switch (format) {
     case "roman":
       return "lower-roman";

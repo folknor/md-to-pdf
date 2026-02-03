@@ -1,12 +1,12 @@
 import { resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import type { PdfMetadata } from "@mdforge/pdf";
 import type { MarkedExtension } from "marked";
 import type { FrameAddScriptTagOptions, launch, PDFOptions } from "puppeteer";
 import type { FontConfig } from "./fonts.js";
 import type { HeadingNumbersConfig } from "./heading-numbers.js";
 import type { TemplatesConfig } from "./includes.js";
-import type { PdfMetadata } from "@mdforge/pdf";
 import { type Theme, themes } from "./presets.js";
 import type { TOCOptions } from "./toc.js";
 

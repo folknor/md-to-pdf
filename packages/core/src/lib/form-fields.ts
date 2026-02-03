@@ -117,19 +117,19 @@ export function formFields(options: FormFieldsOptions = {}): MarkedExtension {
           const itemMatches = listRaw.matchAll(
             /^[ \t]*[-*+\d.]+[ \t]+(.+?)(?:\n|$)/gm,
           );
-          const options: Array<{ text: string; value: string }> = [];
+          const parsedOptions: Array<{ text: string; value: string }> = [];
 
           for (const m of itemMatches) {
             const text = m[1]?.trim() ?? "";
             // Check for quoted value
             const valueMatch = text.match(/^(.+?)\s+"([^"]+)"$/);
             if (valueMatch?.[1] && valueMatch[2]) {
-              options.push({
+              parsedOptions.push({
                 text: valueMatch[1].trim(),
                 value: valueMatch[2],
               });
             } else {
-              options.push({ text, value: text });
+              parsedOptions.push({ text, value: text });
             }
           }
 
@@ -139,11 +139,16 @@ export function formFields(options: FormFieldsOptions = {}): MarkedExtension {
             fieldType: consumer.type,
             name: consumer.name,
             label: consumer.label,
-            options,
+            options: parsedOptions,
           };
         },
         renderer(token: Tokens.Generic): string {
-          const { fieldType, name, label, options } = token as unknown as {
+          const {
+            fieldType,
+            name,
+            label,
+            options: fieldOptions,
+          } = token as unknown as {
             fieldType: FieldType;
             name: string;
             label: string;
@@ -153,7 +158,7 @@ export function formFields(options: FormFieldsOptions = {}): MarkedExtension {
           if (fieldType === "select") {
             if (fillable) {
               // Fillable mode: render as actual select (AcroForm dropdown will work)
-              const optionsHtml = options
+              const optionsHtml = fieldOptions
                 .map((o) => `<option value="${o.value}">${o.text}</option>`)
                 .join("\n");
               const dataAttrs = `data-form-field data-field-name="${name}" data-field-type="select"`;
@@ -165,7 +170,7 @@ ${wrappedSelect}
 </label>\n`;
             }
             // Default mode: render as radio buttons (static dropdowns are useless)
-            const itemsHtml = options
+            const itemsHtml = fieldOptions
               .map(
                 (o) => `<label class="form-option">
 <input type="radio" name="${name}" value="${o.value}">
@@ -183,7 +188,7 @@ ${itemsHtml}
 
           if (fieldType === "checklist" || fieldType === "radiolist") {
             const inputType = fieldType === "checklist" ? "checkbox" : "radio";
-            const itemsHtml = options
+            const itemsHtml = fieldOptions
               .map((o) => {
                 const optionDataAttrs = fillable
                   ? `data-form-field data-field-name="${name}" data-field-type="${inputType}" data-field-value="${o.value}"`

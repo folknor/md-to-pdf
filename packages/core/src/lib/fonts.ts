@@ -268,9 +268,9 @@ function extractEmbeddedFonts(css: string): EmbeddedFontData[] {
 
   // Match @font-face blocks
   const fontFaceRegex = /@font-face\s*\{([^}]+)\}/g;
-  let match: RegExpExecArray | null;
+  let match: RegExpExecArray | null = fontFaceRegex.exec(css);
 
-  while ((match = fontFaceRegex.exec(css)) !== null) {
+  while (match !== null) {
     const block = match[1];
     if (!block) continue;
 
@@ -300,6 +300,7 @@ function extractEmbeddedFonts(css: string): EmbeddedFontData[] {
     }
 
     fonts.push({ family, data: bytes, weight, style });
+    match = fontFaceRegex.exec(css);
   }
 
   return fonts;

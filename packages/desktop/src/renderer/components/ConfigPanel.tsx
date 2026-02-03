@@ -1,4 +1,8 @@
-import { fontPairingPresets, type Theme, themes } from "@mdforge/renderer-electron/browser";
+import {
+  fontPairingPresets,
+  type Theme,
+  themes,
+} from "@mdforge/renderer-electron/browser";
 import type React from "react";
 
 interface ConfigPanelProps {

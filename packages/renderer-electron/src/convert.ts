@@ -8,13 +8,14 @@ import { promises as fs } from "node:fs";
 import process from "node:process";
 import type { Config, ConversionInfo } from "@mdforge/core";
 import { GenerationError } from "@mdforge/core/errors";
-import { prepareConversion, type ConvertOptions } from "@mdforge/core/prepare";
+import { type ConvertOptions, prepareConversion } from "@mdforge/core/prepare";
 import { render } from "./render.js";
 
 // Simple logger - enable with MDFORGE_DEBUG=1
-const DEBUG = process.env.MDFORGE_DEBUG === "1";
+const DEBUG: boolean = process.env["MDFORGE_DEBUG"] === "1";
 function log(...args: unknown[]): void {
   if (DEBUG) {
+    // biome-ignore lint/suspicious/noConsole: Debug logging
     console.log("[renderer-electron:convert]", ...args);
   }
 }

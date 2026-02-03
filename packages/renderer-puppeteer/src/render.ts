@@ -51,7 +51,7 @@ async function detectSystemFont(
       timeout: 5000,
     }).trim();
 
-    if (!(fontFile && fontFile.match(/\.(ttf|otf|woff2?)$/i))) {
+    if (!fontFile?.match(/\.(ttf|otf|woff2?)$/i)) {
       return;
     }
 

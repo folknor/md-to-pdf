@@ -26,7 +26,7 @@ export default function PdfPreview({
       setBlobUrl(url);
 
       // Cleanup old blob URL
-      return () => {
+      return (): void => {
         URL.revokeObjectURL(url);
       };
     }
@@ -34,13 +34,13 @@ export default function PdfPreview({
     return;
   }, [pdfData]);
 
-  const formatTime = (date: Date): string => {
+  function formatTime(date: Date): string {
     return date.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
     });
-  };
+  }
 
   return (
     <div className="h-full bg-white rounded-lg shadow overflow-hidden flex flex-col">
@@ -49,19 +49,19 @@ export default function PdfPreview({
           {fileName ? `Preview: ${fileName}` : "Preview"}
         </span>
         <div className="flex items-center gap-3">
-          {generatedAt && !isLoading && (
+          {generatedAt != null && !isLoading ? (
             <span className="text-xs text-gray-500">
               {formatTime(generatedAt)}
             </span>
-          )}
-          {isLoading && (
+          ) : null}
+          {isLoading ? (
             <span className="text-sm text-blue-600">Generating...</span>
-          )}
+          ) : null}
         </div>
       </div>
 
       <div className="relative flex-1">
-        {error && (
+        {error != null ? (
           <div className="absolute inset-0 flex items-center justify-center bg-red-50">
             <div className="text-center p-4">
               <svg
@@ -81,9 +81,9 @@ export default function PdfPreview({
               <p className="text-red-600 text-sm">{error}</p>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {!error && !blobUrl && !isLoading && (
+        {error == null && blobUrl == null && !isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
             <div className="text-center p-4">
               <svg
@@ -100,37 +100,34 @@ export default function PdfPreview({
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                 />
               </svg>
-              <p className="text-gray-500 text-sm">
-                Select a file to preview
-              </p>
+              <p className="text-gray-500 text-sm">Select a file to preview</p>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {isLoading && !blobUrl && (
+        {isLoading && blobUrl == null ? (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
             <div className="text-center p-4">
               <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
               <p className="text-gray-600 text-sm">Generating preview...</p>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {blobUrl && (
+        {blobUrl != null ? (
           <iframe
             src={blobUrl}
             title="PDF Preview"
             className="w-full h-full border-0"
           />
-        )}
+        ) : null}
 
-        {isLoading && blobUrl && (
+        {isLoading && blobUrl != null ? (
           <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
             Updating...
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
 }
-

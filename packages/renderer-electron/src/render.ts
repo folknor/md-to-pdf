@@ -7,15 +7,17 @@
 
 import { execSync } from "node:child_process";
 import { promises as fs } from "node:fs";
+import process from "node:process";
 import type { EmbeddedFontData } from "@mdforge/core/fonts";
 import type { PreparedConversion } from "@mdforge/core/prepare";
 import { addAcroFormFields, injectPdfMetadata } from "@mdforge/pdf";
 import { BrowserWindow } from "electron";
 
 // Simple logger - enable with MDFORGE_DEBUG=1
-const DEBUG = process.env.MDFORGE_DEBUG === "1";
+const DEBUG: boolean = process.env["MDFORGE_DEBUG"] === "1";
 function log(...args: unknown[]): void {
   if (DEBUG) {
+    // biome-ignore lint/suspicious/noConsole: Debug logging
     console.log("[renderer-electron]", ...args);
   }
 }
@@ -46,7 +48,7 @@ async function detectSystemFont(
       timeout: 5000,
     }).trim();
 
-    if (!(fontFile && fontFile.match(/\.(ttf|otf|woff2?)$/i))) {
+    if (!fontFile?.match(/\.(ttf|otf|woff2?)$/i)) {
       return;
     }
 
@@ -67,7 +69,9 @@ async function detectSystemFont(
  * Build complete HTML with stylesheets inlined.
  * Electron doesn't have addStyleTag like Puppeteer, so we inline everything.
  */
-async function buildCompleteHtml(prepared: PreparedConversion): Promise<string> {
+async function buildCompleteHtml(
+  prepared: PreparedConversion,
+): Promise<string> {
   const styleParts: string[] = [];
 
   for (const stylesheet of prepared.stylesheets) {
@@ -108,7 +112,8 @@ function mapPdfOptions(
 
   // Map page size
   if (pdfOptions.format) {
-    options.pageSize = pdfOptions.format.toUpperCase() as Electron.PrintToPDFOptions["pageSize"];
+    options.pageSize =
+      pdfOptions.format.toUpperCase() as Electron.PrintToPDFOptions["pageSize"];
   } else if (pdfOptions.width && pdfOptions.height) {
     // Custom size - Electron expects microns for custom sizes
     // Puppeteer uses CSS units, so we need to convert
@@ -123,9 +128,13 @@ function mapPdfOptions(
     const margin = pdfOptions.margin;
     options.margins = {
       top: parseCssToInches(typeof margin === "object" ? margin.top : margin),
-      bottom: parseCssToInches(typeof margin === "object" ? margin.bottom : margin),
+      bottom: parseCssToInches(
+        typeof margin === "object" ? margin.bottom : margin,
+      ),
       left: parseCssToInches(typeof margin === "object" ? margin.left : margin),
-      right: parseCssToInches(typeof margin === "object" ? margin.right : margin),
+      right: parseCssToInches(
+        typeof margin === "object" ? margin.right : margin,
+      ),
     };
   }
 
@@ -186,10 +195,17 @@ function parseCssToInches(value: string | number | undefined): number {
  * @param prepared - The prepared conversion from @mdforge/core
  * @returns The rendered content
  */
-export async function render(prepared: PreparedConversion): Promise<RenderResult> {
+export async function render(
+  prepared: PreparedConversion,
+): Promise<RenderResult> {
   const { config } = prepared;
 
-  log("Starting render, as_html:", config.as_html, "fillable:", config.fillable);
+  log(
+    "Starting render, as_html:",
+    config.as_html,
+    "fillable:",
+    config.fillable,
+  );
 
   // Create a hidden BrowserWindow for rendering
   const win = new BrowserWindow({
@@ -253,7 +269,10 @@ export async function render(prepared: PreparedConversion): Promise<RenderResult
       `);
       if (selectData.length > 0) {
         selectOptions = new Map(
-          selectData.map((s: { name: string; options: string[] }) => [s.name, s.options]),
+          selectData.map((s: { name: string; options: string[] }) => [
+            s.name,
+            s.options,
+          ]),
         );
       }
 

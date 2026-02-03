@@ -40,7 +40,7 @@ export class ConfigError extends MdforgeError {
  * Error thrown when PDF/HTML generation fails
  */
 export class GenerationError extends MdforgeError {
-  readonly cause?: Error;
+  override readonly cause?: Error;
 
   constructor(message: string, cause?: Error) {
     super(message);

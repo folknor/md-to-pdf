@@ -1,18 +1,20 @@
-import { watch, type FSWatcher } from "node:fs";
+import { type FSWatcher, watch } from "node:fs";
+import process from "node:process";
 import { BrowserWindow, dialog, ipcMain } from "electron";
 import type { ConversionConfig, PreviewConfig } from "../types";
 import { convertFiles, generatePreview } from "./conversion";
 
 // Simple logger - enable with MDFORGE_DEBUG=1
-const DEBUG = process.env.MDFORGE_DEBUG === "1";
+const DEBUG: boolean = process.env["MDFORGE_DEBUG"] === "1";
 function log(...args: unknown[]): void {
   if (DEBUG) {
+    // biome-ignore lint/suspicious/noConsole: Debug logging
     console.log("[desktop:ipc]", ...args);
   }
 }
 
 // Track file watchers per window
-const fileWatchers = new Map<string, FSWatcher>();
+const fileWatchers: Map<string, FSWatcher> = new Map();
 
 export function setupIpcHandlers(): void {
   // File conversion

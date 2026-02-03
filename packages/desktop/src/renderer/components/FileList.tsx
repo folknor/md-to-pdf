@@ -44,51 +44,46 @@ export default function FileList({
           return (
             <li
               key={file.path}
-              className={`p-3 flex items-center gap-3 cursor-pointer transition-colors ${
+              className={`flex items-center transition-colors ${
                 isSelected
                   ? "bg-blue-50 border-l-4 border-l-blue-500"
                   : "hover:bg-gray-50 border-l-4 border-l-transparent"
               }`}
-              onClick={(): void => onSelect(file.path)}
-              onKeyDown={(e): void => {
-                if (e.key === "Enter" || e.key === " ") {
-                  onSelect(file.path);
-                }
-              }}
-              role="button"
-              tabIndex={0}
             >
-              <StatusIcon status={file.status} />
+              <button
+                type="button"
+                onClick={(): void => onSelect(file.path)}
+                className="flex-1 p-3 flex items-center gap-3 text-left"
+              >
+                <StatusIcon status={file.status} />
 
-              <div className="flex-1 min-w-0">
-                <p
-                  className={`text-sm font-medium truncate ${
-                    isSelected ? "text-blue-800" : "text-gray-800"
-                  }`}
-                >
-                  {file.name}
-                </p>
-                {file.status === "converting" && (
-                  <div className="mt-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 transition-all"
-                      style={{ width: `${file.progress}%` }}
-                    />
-                  </div>
-                )}
-                {file.error ? (
-                  <p className="text-xs text-red-600 mt-1">{file.error}</p>
-                ) : null}
-              </div>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={`text-sm font-medium truncate ${
+                      isSelected ? "text-blue-800" : "text-gray-800"
+                    }`}
+                  >
+                    {file.name}
+                  </p>
+                  {file.status === "converting" && (
+                    <div className="mt-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 transition-all"
+                        style={{ width: `${file.progress}%` }}
+                      />
+                    </div>
+                  )}
+                  {file.error != null ? (
+                    <p className="text-xs text-red-600 mt-1">{file.error}</p>
+                  ) : null}
+                </div>
+              </button>
 
               <button
                 type="button"
-                onClick={(e): void => {
-                  e.stopPropagation();
-                  onRemove(file.path);
-                }}
+                onClick={(): void => onRemove(file.path)}
                 aria-label="Remove file"
-                className="text-gray-400 hover:text-red-600 transition-colors"
+                className="p-3 text-gray-400 hover:text-red-600 transition-colors"
               >
                 <svg
                   aria-hidden="true"
