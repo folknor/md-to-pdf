@@ -24,8 +24,8 @@ const ANCHOR_REGEX = /(?<!`)@anchor\(([^)]+)\)/g;
  * Generate a slug from section name using same logic as heading IDs
  */
 function generateSlug(sectionName: string): string {
-	const slugger = new GithubSlugger();
-	return slugger.slug(cleanForSlug(sectionName.trim()));
+  const slugger = new GithubSlugger();
+  return slugger.slug(cleanForSlug(sectionName.trim()));
 }
 
 /**
@@ -34,19 +34,19 @@ function generateSlug(sectionName: string): string {
  * - @anchor Custom Point → <a id="custom-point"></a>
  */
 export function processXref(content: string): string {
-	// Process @anchor definitions first
-	let result = content.replace(ANCHOR_REGEX, (_match, anchorName: string) => {
-		const trimmed = anchorName.trim();
-		const slug = generateSlug(trimmed);
-		return `<a id="${slug}"></a>`;
-	});
+  // Process @anchor definitions first
+  let result = content.replace(ANCHOR_REGEX, (_match, anchorName: string) => {
+    const trimmed = anchorName.trim();
+    const slug = generateSlug(trimmed);
+    return `<a id="${slug}"></a>`;
+  });
 
-	// Process @see references
-	result = result.replace(XREF_REGEX, (_match, sectionName: string) => {
-		const trimmed = sectionName.trim();
-		const slug = generateSlug(trimmed);
-		return `[${trimmed}](#${slug})`;
-	});
+  // Process @see references
+  result = result.replace(XREF_REGEX, (_match, sectionName: string) => {
+    const trimmed = sectionName.trim();
+    const slug = generateSlug(trimmed);
+    return `[${trimmed}](#${slug})`;
+  });
 
-	return result;
+  return result;
 }

@@ -12,12 +12,12 @@
  */
 
 import {
-	PDFArray,
-	PDFDict,
-	PDFDocument,
-	type PDFFont,
-	PDFName,
-	rgb,
+  PDFDict,
+  PDFDocument,
+  type PDFFont,
+  type PDFLinkAnnotation,
+  PDFName,
+  rgb,
 } from "@folknor/pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import type { EmbeddedFontData } from "./fonts.js";
@@ -27,33 +27,33 @@ import { MARKER_URL_PREFIX } from "./form-fields.js";
  * Position information for a form field extracted from marker annotations.
  */
 export interface FieldPosition {
-	name: string;
-	type: "text" | "textarea" | "select" | "checkbox" | "radio";
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-	/** Page index (0-based) */
-	pageIndex: number;
-	/** For select fields: list of options */
-	options?: string[];
-	/** For checkbox/radio fields: the value attribute */
-	value?: string;
+  name: string;
+  type: "text" | "textarea" | "select" | "checkbox" | "radio";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** Page index (0-based) */
+  pageIndex: number;
+  /** For select fields: list of options */
+  options?: string[];
+  /** For checkbox/radio fields: the value attribute */
+  value?: string;
 }
 
 /**
  * Configuration for AcroForm field generation.
  */
 export interface AcroFormConfig {
-	/** For select fields: map of field name to list of options */
-	selectOptions?: Map<string, string[]>;
-	/** Font information extracted from rendered form fields */
-	formFontInfo?: {
-		fontFamily: string;
-		fontSize: number;
-	};
-	/** Embedded font data for form fields */
-	embeddedFonts?: EmbeddedFontData[];
+  /** For select fields: map of field name to list of options */
+  selectOptions?: Map<string, string[]>;
+  /** Font information extracted from rendered form fields */
+  formFontInfo?: {
+    fontFamily: string;
+    fontSize: number;
+  };
+  /** Embedded font data for form fields */
+  embeddedFonts?: EmbeddedFontData[];
 }
 
 /**
@@ -61,21 +61,21 @@ export interface AcroFormConfig {
  * URL format: https://mdforge.marker/{name}?type={type}&value={value}
  */
 function parseMarkerUrl(
-	url: string,
+  url: string,
 ): { name: string; type: string; value?: string } | null {
-	if (!url.startsWith(MARKER_URL_PREFIX)) return null;
+  if (!url.startsWith(MARKER_URL_PREFIX)) return null;
 
-	try {
-		const urlObj = new URL(url);
-		const name = decodeURIComponent(urlObj.pathname.slice(1)); // Remove leading /
-		const type = urlObj.searchParams.get("type");
-		const value = urlObj.searchParams.get("value") || undefined;
+  try {
+    const urlObj = new URL(url);
+    const name = decodeURIComponent(urlObj.pathname.slice(1)); // Remove leading /
+    const type = urlObj.searchParams.get("type");
+    const value = urlObj.searchParams.get("value") || undefined;
 
-		if (!(name && type)) return null;
-		return { name, type, value };
-	} catch {
-		return null;
-	}
+    if (!(name && type)) return null;
+    return { name, type, value };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -83,98 +83,48 @@ function parseMarkerUrl(
  * Also removes the marker annotations from the PDF.
  */
 function extractAndRemoveMarkers(pdfDoc: PDFDocument): FieldPosition[] {
-	const fields: FieldPosition[] = [];
-	const pages = pdfDoc.getPages();
+  const fields: FieldPosition[] = [];
+  const pages = pdfDoc.getPages();
 
-	for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
-		const page = pages[pageIndex];
-		if (!page) continue;
+  for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+    const page = pages[pageIndex];
+    if (!page) continue;
 
-		const annotsRef = page.node.get(PDFName.of("Annots"));
-		if (!annotsRef) continue;
+    // Find all link annotations that are markers
+    const markers: PDFLinkAnnotation[] = [];
+    for (const link of page.getLinkAnnotations()) {
+      const url = link.getUrl();
+      if (url?.startsWith(MARKER_URL_PREFIX)) {
+        markers.push(link);
+      }
+    }
 
-		const annots = page.node.context.lookup(annotsRef);
-		if (!(annots && annots instanceof PDFArray)) continue;
+    // Extract field positions and remove markers
+    for (const link of markers) {
+      const url = link.getUrl();
+      if (!url) continue;
 
-		// Collect indices of marker annotations to remove
-		const toRemove: number[] = [];
+      const markerInfo = parseMarkerUrl(url);
+      if (!markerInfo) continue;
 
-		for (let j = 0; j < annots.size(); j++) {
-			const annotRef = annots.get(j);
-			const annotObj = page.node.context.lookup(annotRef);
-			if (!(annotObj && annotObj instanceof PDFDict)) continue;
-			const annot = annotObj;
+      const rect = link.getRectangle();
 
-			// Check if it's a Link annotation
-			const subtype = annot.get(PDFName.of("Subtype"));
-			if (subtype?.toString() !== "/Link") continue;
+      fields.push({
+        name: markerInfo.name,
+        type: markerInfo.type as FieldPosition["type"],
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+        pageIndex,
+        value: markerInfo.value,
+      });
 
-			// Get the action to extract URL
-			const actionRef = annot.get(PDFName.of("A"));
-			if (!actionRef) continue;
+      page.removeAnnotation(link);
+    }
+  }
 
-			const actionObj = page.node.context.lookup(actionRef);
-			if (!(actionObj && actionObj instanceof PDFDict)) continue;
-			const action = actionObj;
-
-			const uriObj = action.get(PDFName.of("URI"));
-			if (!uriObj) continue;
-
-			// Extract URL string (it's in format "(url)")
-			const urlRaw = uriObj.toString();
-			const url =
-				urlRaw.startsWith("(") && urlRaw.endsWith(")")
-					? urlRaw.slice(1, -1)
-					: urlRaw;
-
-			// Check if it's a marker URL
-			const markerInfo = parseMarkerUrl(url);
-			if (!markerInfo) continue;
-
-			// Get the rectangle [llx, lly, urx, ury]
-			const rectObj = annot.get(PDFName.of("Rect"));
-			if (!(rectObj && rectObj instanceof PDFArray)) continue;
-
-			const rect = rectObj.asArray().map((n) => {
-				const num = n.toString();
-				return Number.parseFloat(num);
-			});
-
-			if (rect.length !== 4) continue;
-
-			const [llx, lly, urx, ury] = rect;
-			if (
-				llx === undefined ||
-				lly === undefined ||
-				urx === undefined ||
-				ury === undefined
-			)
-				continue;
-
-			fields.push({
-				name: markerInfo.name,
-				type: markerInfo.type as FieldPosition["type"],
-				x: llx,
-				y: lly,
-				width: urx - llx,
-				height: ury - lly,
-				pageIndex,
-				value: markerInfo.value,
-			});
-
-			toRemove.push(j);
-		}
-
-		// Remove marker annotations (in reverse order to preserve indices)
-		for (let i = toRemove.length - 1; i >= 0; i--) {
-			const idx = toRemove[i];
-			if (idx !== undefined) {
-				annots.remove(idx);
-			}
-		}
-	}
-
-	return fields;
+  return fields;
 }
 
 /**
@@ -191,222 +141,222 @@ function extractAndRemoveMarkers(pdfDoc: PDFDocument): FieldPosition[] {
  * @returns Modified PDF buffer with AcroForm fields
  */
 export async function addAcroFormFields(
-	pdfBuffer: Buffer | Uint8Array,
-	config: AcroFormConfig = {},
+  pdfBuffer: Buffer | Uint8Array,
+  config: AcroFormConfig = {},
 ): Promise<Uint8Array> {
-	const pdfDoc = await PDFDocument.load(new Uint8Array(pdfBuffer));
-	const pages = pdfDoc.getPages();
-	if (pages.length === 0) {
-		return pdfDoc.save();
-	}
+  const pdfDoc = await PDFDocument.load(new Uint8Array(pdfBuffer));
+  const pages = pdfDoc.getPages();
+  if (pages.length === 0) {
+    return pdfDoc.save();
+  }
 
-	// Extract marker annotations and get field positions
-	const fields = extractAndRemoveMarkers(pdfDoc);
-	if (fields.length === 0) {
-		return pdfDoc.save();
-	}
+  // Extract marker annotations and get field positions
+  const fields = extractAndRemoveMarkers(pdfDoc);
+  if (fields.length === 0) {
+    return pdfDoc.save();
+  }
 
-	const form = pdfDoc.getForm();
+  const form = pdfDoc.getForm();
 
-	// Calculate font size for form fields
-	// CSS uses 96 DPI, PDF uses 72 DPI, so multiply by 0.75
-	// If no font info available, use a reasonable default based on typical form field height
-	const fontSize = config.formFontInfo
-		? Math.round(config.formFontInfo.fontSize * 0.75)
-		: undefined;
+  // Calculate font size for form fields
+  // CSS uses 96 DPI, PDF uses 72 DPI, so multiply by 0.75
+  // If no font info available, use a reasonable default based on typical form field height
+  const fontSize = config.formFontInfo
+    ? Math.round(config.formFontInfo.fontSize * 0.75)
+    : undefined;
 
-	// Embed custom font if available
-	let customFont: PDFFont | undefined;
-	if (config.embeddedFonts && config.embeddedFonts.length > 0) {
-		// Find the body font (weight 400, normal style preferred)
-		const fontFamily = config.formFontInfo?.fontFamily;
-		let fontData = config.embeddedFonts.find(
-			(f) =>
-				f.family === fontFamily && f.weight === 400 && f.style === "normal",
-		);
-		// Fallback to any font with weight 400
-		if (!fontData) {
-			fontData = config.embeddedFonts.find(
-				(f) => f.weight === 400 && f.style === "normal",
-			);
-		}
-		// Fallback to first available font
-		if (!fontData) {
-			fontData = config.embeddedFonts[0];
-		}
+  // Embed custom font if available
+  let customFont: PDFFont | undefined;
+  if (config.embeddedFonts && config.embeddedFonts.length > 0) {
+    // Find the body font (weight 400, normal style preferred)
+    const fontFamily = config.formFontInfo?.fontFamily;
+    let fontData = config.embeddedFonts.find(
+      (f) =>
+        f.family === fontFamily && f.weight === 400 && f.style === "normal",
+    );
+    // Fallback to any font with weight 400
+    if (!fontData) {
+      fontData = config.embeddedFonts.find(
+        (f) => f.weight === 400 && f.style === "normal",
+      );
+    }
+    // Fallback to first available font
+    if (!fontData) {
+      fontData = config.embeddedFonts[0];
+    }
 
-		if (fontData) {
-			try {
-				// biome-ignore lint/suspicious/noExplicitAny: fontkit types don't match exactly
-				pdfDoc.registerFontkit(fontkit as any);
-				customFont = await pdfDoc.embedFont(
-					fontData.data as Uint8Array<ArrayBuffer>,
-				);
-			} catch {
-				// Font embedding failed - continue with default Helvetica
-			}
-		}
-	}
+    if (fontData) {
+      try {
+        // biome-ignore lint/suspicious/noExplicitAny: fontkit types don't match exactly
+        pdfDoc.registerFontkit(fontkit as any);
+        customFont = await pdfDoc.embedFont(
+          fontData.data as Uint8Array<ArrayBuffer>,
+        );
+      } catch {
+        // Font embedding failed - continue with default Helvetica
+      }
+    }
+  }
 
-	// Group checkbox/radio fields by name for proper handling
-	const radioGroups = new Map<string, FieldPosition[]>();
-	const checkboxGroups = new Map<string, FieldPosition[]>();
-	const simpleFields: FieldPosition[] = [];
+  // Group checkbox/radio fields by name for proper handling
+  const radioGroups = new Map<string, FieldPosition[]>();
+  const checkboxGroups = new Map<string, FieldPosition[]>();
+  const simpleFields: FieldPosition[] = [];
 
-	for (const field of fields) {
-		if (field.type === "radio") {
-			const group = radioGroups.get(field.name) || [];
-			group.push(field);
-			radioGroups.set(field.name, group);
-		} else if (field.type === "checkbox" && field.value) {
-			// Checkbox with value = part of a group
-			const group = checkboxGroups.get(field.name) || [];
-			group.push(field);
-			checkboxGroups.set(field.name, group);
-		} else {
-			simpleFields.push(field);
-		}
-	}
+  for (const field of fields) {
+    if (field.type === "radio") {
+      const group = radioGroups.get(field.name) || [];
+      group.push(field);
+      radioGroups.set(field.name, group);
+    } else if (field.type === "checkbox" && field.value) {
+      // Checkbox with value = part of a group
+      const group = checkboxGroups.get(field.name) || [];
+      group.push(field);
+      checkboxGroups.set(field.name, group);
+    } else {
+      simpleFields.push(field);
+    }
+  }
 
-	// Add simple fields (text, textarea, select, single checkboxes)
-	for (const field of simpleFields) {
-		const page = pages[field.pageIndex];
-		if (!page) continue;
+  // Add simple fields (text, textarea, select, single checkboxes)
+  for (const field of simpleFields) {
+    const page = pages[field.pageIndex];
+    if (!page) continue;
 
-		try {
-			if (field.type === "text" || field.type === "textarea") {
-				const textField = form.createTextField(field.name);
-				if (fontSize) {
-					textField.setFontSize(fontSize);
-				}
-				textField.addToPage(page, {
-					x: field.x,
-					y: field.y,
-					width: field.width,
-					height: field.height,
-					borderWidth: 0,
-					backgroundColor: undefined, // Transparent - show HTML styling through
-					font: customFont,
-				});
-				if (field.type === "textarea") {
-					textField.enableMultiline();
-					textField.enableScrolling();
-				}
-			} else if (field.type === "select") {
-				const dropdown = form.createDropdown(field.name);
-				if (fontSize) {
-					dropdown.setFontSize(fontSize);
-				}
-				const options = config.selectOptions?.get(field.name);
-				if (options) {
-					dropdown.addOptions(options);
-				}
-				dropdown.addToPage(page, {
-					x: field.x,
-					y: field.y,
-					width: field.width,
-					height: field.height,
-					borderWidth: 0,
-					backgroundColor: undefined, // Transparent
-					font: customFont,
-				});
+    try {
+      if (field.type === "text" || field.type === "textarea") {
+        const textField = form.createTextField(field.name);
+        if (fontSize) {
+          textField.setFontSize(fontSize);
+        }
+        textField.addToPage(page, {
+          x: field.x,
+          y: field.y,
+          width: field.width,
+          height: field.height,
+          borderWidth: 0,
+          backgroundColor: undefined, // Transparent - show HTML styling through
+          font: customFont,
+        });
+        if (field.type === "textarea") {
+          textField.enableMultiline();
+          textField.enableScrolling();
+        }
+      } else if (field.type === "select") {
+        const dropdown = form.createDropdown(field.name);
+        if (fontSize) {
+          dropdown.setFontSize(fontSize);
+        }
+        const options = config.selectOptions?.get(field.name);
+        if (options) {
+          dropdown.addOptions(options);
+        }
+        dropdown.addToPage(page, {
+          x: field.x,
+          y: field.y,
+          width: field.width,
+          height: field.height,
+          borderWidth: 0,
+          backgroundColor: undefined, // Transparent
+          font: customFont,
+        });
 
-				// Draw a down arrow indicator on the right side
-				const arrowFontSize = fontSize ?? 12;
-				const arrowWidth = Math.min(arrowFontSize * 0.6, field.height * 0.3);
-				const arrowHeight = arrowWidth * 0.6;
-				const arrowPadding = 4;
-				const arrowX = field.x + field.width - arrowPadding - arrowWidth;
-				// Arrow extends downward from y, so place top at center + half height
-				const arrowY = field.y + (field.height + arrowHeight) / 2;
-				// SVG path for downward triangle (SVG coords: Y increases downward):
-				// Top-left -> Top-right -> Bottom-center
-				const arrowPath = `M 0 0 L ${arrowWidth} 0 L ${arrowWidth / 2} ${arrowHeight} Z`;
-				page.drawSvgPath(arrowPath, {
-					x: arrowX,
-					y: arrowY,
-					color: rgb(0, 0, 0),
-					borderWidth: 0,
-				});
-			} else if (field.type === "checkbox") {
-				const size = Math.min(field.width, field.height);
-				const checkbox = form.createCheckBox(field.name);
-				checkbox.addToPage(page, {
-					x: field.x,
-					y: field.y,
-					width: size,
-					height: size,
-					borderWidth: 0,
-					backgroundColor: undefined, // Transparent
-				});
-			}
-		} catch {
-			// Field creation may fail if name already exists - skip silently
-		}
-	}
+        // Draw a down arrow indicator on the right side
+        const arrowFontSize = fontSize ?? 12;
+        const arrowWidth = Math.min(arrowFontSize * 0.6, field.height * 0.3);
+        const arrowHeight = arrowWidth * 0.6;
+        const arrowPadding = 4;
+        const arrowX = field.x + field.width - arrowPadding - arrowWidth;
+        // Arrow extends downward from y, so place top at center + half height
+        const arrowY = field.y + (field.height + arrowHeight) / 2;
+        // SVG path for downward triangle (SVG coords: Y increases downward):
+        // Top-left -> Top-right -> Bottom-center
+        const arrowPath = `M 0 0 L ${arrowWidth} 0 L ${arrowWidth / 2} ${arrowHeight} Z`;
+        page.drawSvgPath(arrowPath, {
+          x: arrowX,
+          y: arrowY,
+          color: rgb(0, 0, 0),
+          borderWidth: 0,
+        });
+      } else if (field.type === "checkbox") {
+        const size = Math.min(field.width, field.height);
+        const checkbox = form.createCheckBox(field.name);
+        checkbox.addToPage(page, {
+          x: field.x,
+          y: field.y,
+          width: size,
+          height: size,
+          borderWidth: 0,
+          backgroundColor: undefined, // Transparent
+        });
+      }
+    } catch {
+      // Field creation may fail if name already exists - skip silently
+    }
+  }
 
-	// Add radio button groups
-	for (const [name, options] of radioGroups) {
-		try {
-			const radioGroup = form.createRadioGroup(name);
-			for (const opt of options) {
-				const page = pages[opt.pageIndex];
-				if (!page) continue;
+  // Add radio button groups
+  for (const [name, options] of radioGroups) {
+    try {
+      const radioGroup = form.createRadioGroup(name);
+      for (const opt of options) {
+        const page = pages[opt.pageIndex];
+        if (!page) continue;
 
-				const size = Math.min(opt.width, opt.height);
-				radioGroup.addOptionToPage(opt.value || opt.name, page, {
-					x: opt.x,
-					y: opt.y,
-					width: size,
-					height: size,
-					borderWidth: 0,
-					backgroundColor: undefined, // Transparent
-				});
-			}
-		} catch {
-			// Radio group creation may fail - skip silently
-		}
-	}
+        const size = Math.min(opt.width, opt.height);
+        radioGroup.addOptionToPage(opt.value || opt.name, page, {
+          x: opt.x,
+          y: opt.y,
+          width: size,
+          height: size,
+          borderWidth: 0,
+          backgroundColor: undefined, // Transparent
+        });
+      }
+    } catch {
+      // Radio group creation may fail - skip silently
+    }
+  }
 
-	// Add checkbox groups (each checkbox needs unique name)
-	for (const [name, options] of checkboxGroups) {
-		for (const opt of options) {
-			const page = pages[opt.pageIndex];
-			if (!page) continue;
+  // Add checkbox groups (each checkbox needs unique name)
+  for (const [name, options] of checkboxGroups) {
+    for (const opt of options) {
+      const page = pages[opt.pageIndex];
+      if (!page) continue;
 
-			try {
-				const size = Math.min(opt.width, opt.height);
-				const checkbox = form.createCheckBox(`${name}_${opt.value}`);
-				checkbox.addToPage(page, {
-					x: opt.x,
-					y: opt.y,
-					width: size,
-					height: size,
-					borderWidth: 0,
-					backgroundColor: undefined, // Transparent
-				});
-			} catch {
-				// Checkbox creation may fail - skip silently
-			}
-		}
-	}
+      try {
+        const size = Math.min(opt.width, opt.height);
+        const checkbox = form.createCheckBox(`${name}_${opt.value}`);
+        checkbox.addToPage(page, {
+          x: opt.x,
+          y: opt.y,
+          width: size,
+          height: size,
+          borderWidth: 0,
+          backgroundColor: undefined, // Transparent
+        });
+      } catch {
+        // Checkbox creation may fail - skip silently
+      }
+    }
+  }
 
-	// Update all field appearances with custom font if available
-	if (customFont) {
-		form.updateFieldAppearances(customFont);
-	}
+  // Update all field appearances with custom font if available
+  if (customFont) {
+    form.updateFieldAppearances(customFont);
+  }
 
-	// Remove background colors from all form field widgets
-	// This is needed because some field types (radio buttons) always set a default
-	for (const field of form.getFields()) {
-		const widgets = field.acroField.getWidgets();
-		for (const widget of widgets) {
-			const mk = widget.dict.get(PDFName.of("MK"));
-			if (mk && mk instanceof PDFDict) {
-				mk.delete(PDFName.of("BG"));
-			}
-		}
-	}
+  // Remove background colors from all form field widgets
+  // This is needed because some field types (radio buttons) always set a default
+  for (const field of form.getFields()) {
+    const widgets = field.acroField.getWidgets();
+    for (const widget of widgets) {
+      const mk = widget.dict.get(PDFName.of("MK"));
+      if (mk && mk instanceof PDFDict) {
+        mk.delete(PDFName.of("BG"));
+      }
+    }
+  }
 
-	return pdfDoc.save();
+  return pdfDoc.save();
 }

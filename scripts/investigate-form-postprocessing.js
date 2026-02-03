@@ -41,9 +41,9 @@ await fs.mkdir(outputDir, { recursive: true });
  * to help locate form fields later.
  */
 async function generateTestPdf() {
-	console.log("\n=== Step 1: Generate test PDF with Puppeteer ===\n");
+  console.log("\n=== Step 1: Generate test PDF with Puppeteer ===\n");
 
-	const html = `
+  const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -119,180 +119,180 @@ async function generateTestPdf() {
 </html>
 `;
 
-	const browser = await puppeteer.launch();
-	const page = await browser.newPage();
-	await page.setContent(html, { waitUntil: "networkidle0" });
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.setContent(html, { waitUntil: "networkidle0" });
 
-	// Get field positions from the DOM before generating PDF
-	const fieldPositions = await page.evaluate(() => {
-		const markers = document.querySelectorAll(".field-marker");
-		return Array.from(markers).map((marker) => {
-			const rect = marker.getBoundingClientRect();
-			const input = marker.querySelector("input, textarea");
-			const inputRect = input?.getBoundingClientRect();
-			return {
-				name: marker.dataset.fieldName,
-				type: marker.dataset.fieldType,
-				marker: {
-					x: rect.x,
-					y: rect.y,
-					width: rect.width,
-					height: rect.height,
-				},
-				input: inputRect
-					? {
-							x: inputRect.x,
-							y: inputRect.y,
-							width: inputRect.width,
-							height: inputRect.height,
-						}
-					: null,
-			};
-		});
-	});
+  // Get field positions from the DOM before generating PDF
+  const fieldPositions = await page.evaluate(() => {
+    const markers = document.querySelectorAll(".field-marker");
+    return Array.from(markers).map((marker) => {
+      const rect = marker.getBoundingClientRect();
+      const input = marker.querySelector("input, textarea");
+      const inputRect = input?.getBoundingClientRect();
+      return {
+        name: marker.dataset.fieldName,
+        type: marker.dataset.fieldType,
+        marker: {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+        },
+        input: inputRect
+          ? {
+              x: inputRect.x,
+              y: inputRect.y,
+              width: inputRect.width,
+              height: inputRect.height,
+            }
+          : null,
+      };
+    });
+  });
 
-	console.log("Field positions from DOM:");
-	console.log(JSON.stringify(fieldPositions, null, 2));
+  console.log("Field positions from DOM:");
+  console.log(JSON.stringify(fieldPositions, null, 2));
 
-	// Save positions to JSON for later use
-	const positionsFile = join(outputDir, "field-positions.json");
-	await fs.writeFile(positionsFile, JSON.stringify(fieldPositions, null, 2));
-	console.log(`\nSaved positions to: ${positionsFile}`);
+  // Save positions to JSON for later use
+  const positionsFile = join(outputDir, "field-positions.json");
+  await fs.writeFile(positionsFile, JSON.stringify(fieldPositions, null, 2));
+  console.log(`\nSaved positions to: ${positionsFile}`);
 
-	// Generate PDF
-	const pdfPath = join(outputDir, "test-form.pdf");
-	await page.pdf({
-		path: pdfPath,
-		format: "A4",
-		printBackground: true,
-		margin: { top: "20mm", right: "20mm", bottom: "20mm", left: "20mm" },
-	});
+  // Generate PDF
+  const pdfPath = join(outputDir, "test-form.pdf");
+  await page.pdf({
+    path: pdfPath,
+    format: "A4",
+    printBackground: true,
+    margin: { top: "20mm", right: "20mm", bottom: "20mm", left: "20mm" },
+  });
 
-	console.log(`Generated PDF: ${pdfPath}`);
+  console.log(`Generated PDF: ${pdfPath}`);
 
-	// Also get page dimensions for coordinate mapping
-	const pageInfo = await page.evaluate(() => ({
-		width: document.documentElement.scrollWidth,
-		height: document.documentElement.scrollHeight,
-	}));
-	console.log(`Page dimensions: ${pageInfo.width}x${pageInfo.height}`);
+  // Also get page dimensions for coordinate mapping
+  const pageInfo = await page.evaluate(() => ({
+    width: document.documentElement.scrollWidth,
+    height: document.documentElement.scrollHeight,
+  }));
+  console.log(`Page dimensions: ${pageInfo.width}x${pageInfo.height}`);
 
-	await browser.close();
+  await browser.close();
 
-	return { pdfPath, fieldPositions, pageInfo };
+  return { pdfPath, fieldPositions, pageInfo };
 }
 
 /**
  * Step 2: Parse the PDF and explore what we can detect
  */
 async function analyzePdf(pdfPath) {
-	console.log("\n=== Step 2: Analyze PDF with pdf-lib ===\n");
+  console.log("\n=== Step 2: Analyze PDF with pdf-lib ===\n");
 
-	const pdfBytes = await fs.readFile(pdfPath);
-	const pdfDoc = await PDFDocument.load(pdfBytes);
+  const pdfBytes = await fs.readFile(pdfPath);
+  const pdfDoc = await PDFDocument.load(pdfBytes);
 
-	const pages = pdfDoc.getPages();
-	console.log(`Number of pages: ${pages.length}`);
+  const pages = pdfDoc.getPages();
+  console.log(`Number of pages: ${pages.length}`);
 
-	for (let i = 0; i < pages.length; i++) {
-		const page = pages[i];
-		const { width, height } = page.getSize();
-		console.log(`Page ${i + 1} dimensions: ${width} x ${height} points`);
-		console.log(`  (1 point = 1/72 inch, A4 ≈ 595 x 842 points)`);
-	}
+  for (let i = 0; i < pages.length; i++) {
+    const page = pages[i];
+    const { width, height } = page.getSize();
+    console.log(`Page ${i + 1} dimensions: ${width} x ${height} points`);
+    console.log(`  (1 point = 1/72 inch, A4 ≈ 595 x 842 points)`);
+  }
 
-	// Check for any existing annotations
-	const form = pdfDoc.getForm();
-	const fields = form.getFields();
-	console.log(`\nExisting form fields: ${fields.length}`);
+  // Check for any existing annotations
+  const form = pdfDoc.getForm();
+  const fields = form.getFields();
+  console.log(`\nExisting form fields: ${fields.length}`);
 
-	// Try to access raw PDF structure
-	console.log("\nExploring PDF structure...");
-	const catalog = pdfDoc.catalog;
-	console.log(`Catalog keys: ${Object.keys(catalog).join(", ")}`);
+  // Try to access raw PDF structure
+  console.log("\nExploring PDF structure...");
+  const catalog = pdfDoc.catalog;
+  console.log(`Catalog keys: ${Object.keys(catalog).join(", ")}`);
 
-	return { pdfDoc, pages };
+  return { pdfDoc, pages };
 }
 
 /**
  * Step 3: Add AcroForm fields at calculated positions
  */
 async function addFormFields(pdfDoc, pages, fieldPositions, pageInfo) {
-	console.log("\n=== Step 3: Add AcroForm fields ===\n");
+  console.log("\n=== Step 3: Add AcroForm fields ===\n");
 
-	const page = pages[0];
-	const { width: pdfWidth, height: pdfHeight } = page.getSize();
+  const page = pages[0];
+  const { width: pdfWidth, height: pdfHeight } = page.getSize();
 
-	// PDF coordinate system: origin at bottom-left
-	// HTML coordinate system: origin at top-left
-	// We need to map HTML coordinates to PDF coordinates
+  // PDF coordinate system: origin at bottom-left
+  // HTML coordinate system: origin at top-left
+  // We need to map HTML coordinates to PDF coordinates
 
-	// Puppeteer PDF margins (20mm = ~56.7 points)
-	const marginPt = 20 * (72 / 25.4); // mm to points
+  // Puppeteer PDF margins (20mm = ~56.7 points)
+  const marginPt = 20 * (72 / 25.4); // mm to points
 
-	// Calculate scale factors
-	// The content area in the PDF is (pdfWidth - 2*margin) x (pdfHeight - 2*margin)
-	const contentWidth = pdfWidth - 2 * marginPt;
-	const contentHeight = pdfHeight - 2 * marginPt;
+  // Calculate scale factors
+  // The content area in the PDF is (pdfWidth - 2*margin) x (pdfHeight - 2*margin)
+  const contentWidth = pdfWidth - 2 * marginPt;
+  const contentHeight = pdfHeight - 2 * marginPt;
 
-	// HTML to PDF scale (approximate - Puppeteer uses 96 DPI, PDF uses 72 DPI)
-	const scale = 72 / 96;
+  // HTML to PDF scale (approximate - Puppeteer uses 96 DPI, PDF uses 72 DPI)
+  const scale = 72 / 96;
 
-	console.log(`PDF dimensions: ${pdfWidth} x ${pdfHeight} points`);
-	console.log(`Content area: ${contentWidth} x ${contentHeight} points`);
-	console.log(`HTML to PDF scale: ${scale}`);
-	console.log(`Margin: ${marginPt} points`);
+  console.log(`PDF dimensions: ${pdfWidth} x ${pdfHeight} points`);
+  console.log(`Content area: ${contentWidth} x ${contentHeight} points`);
+  console.log(`HTML to PDF scale: ${scale}`);
+  console.log(`Margin: ${marginPt} points`);
 
-	const form = pdfDoc.getForm();
+  const form = pdfDoc.getForm();
 
-	for (const field of fieldPositions) {
-		if (!field.input) continue;
+  for (const field of fieldPositions) {
+    if (!field.input) continue;
 
-		// Convert HTML coordinates to PDF coordinates
-		const htmlX = field.input.x;
-		const htmlY = field.input.y;
-		const htmlWidth = field.input.width;
-		const htmlHeight = field.input.height;
+    // Convert HTML coordinates to PDF coordinates
+    const htmlX = field.input.x;
+    const htmlY = field.input.y;
+    const htmlWidth = field.input.width;
+    const htmlHeight = field.input.height;
 
-		// Scale and translate
-		const pdfX = marginPt + htmlX * scale;
-		// Flip Y axis: PDF origin is bottom-left
-		const pdfY = pdfHeight - marginPt - (htmlY + htmlHeight) * scale;
-		const pdfFieldWidth = htmlWidth * scale;
-		const pdfFieldHeight = htmlHeight * scale;
+    // Scale and translate
+    const pdfX = marginPt + htmlX * scale;
+    // Flip Y axis: PDF origin is bottom-left
+    const pdfY = pdfHeight - marginPt - (htmlY + htmlHeight) * scale;
+    const pdfFieldWidth = htmlWidth * scale;
+    const pdfFieldHeight = htmlHeight * scale;
 
-		console.log(`\nField: ${field.name}`);
-		console.log(
-			`  HTML: x=${htmlX}, y=${htmlY}, w=${htmlWidth}, h=${htmlHeight}`,
-		);
-		console.log(
-			`  PDF:  x=${pdfX.toFixed(1)}, y=${pdfY.toFixed(1)}, w=${pdfFieldWidth.toFixed(1)}, h=${pdfFieldHeight.toFixed(1)}`,
-		);
+    console.log(`\nField: ${field.name}`);
+    console.log(
+      `  HTML: x=${htmlX}, y=${htmlY}, w=${htmlWidth}, h=${htmlHeight}`,
+    );
+    console.log(
+      `  PDF:  x=${pdfX.toFixed(1)}, y=${pdfY.toFixed(1)}, w=${pdfFieldWidth.toFixed(1)}, h=${pdfFieldHeight.toFixed(1)}`,
+    );
 
-		try {
-			const textField = form.createTextField(field.name);
-			textField.addToPage(page, {
-				x: pdfX,
-				y: pdfY,
-				width: pdfFieldWidth,
-				height: pdfFieldHeight,
-				borderColor: rgb(0, 0, 1),
-				borderWidth: 1,
-			});
-			textField.setFontSize(10);
-			console.log(`  ✓ Added text field`);
-		} catch (err) {
-			console.log(`  ✗ Error: ${err.message}`);
-		}
-	}
+    try {
+      const textField = form.createTextField(field.name);
+      textField.addToPage(page, {
+        x: pdfX,
+        y: pdfY,
+        width: pdfFieldWidth,
+        height: pdfFieldHeight,
+        borderColor: rgb(0, 0, 1),
+        borderWidth: 1,
+      });
+      textField.setFontSize(10);
+      console.log(`  ✓ Added text field`);
+    } catch (err) {
+      console.log(`  ✗ Error: ${err.message}`);
+    }
+  }
 
-	// Save the modified PDF
-	const outputPath = join(outputDir, "test-form-with-fields.pdf");
-	const modifiedPdfBytes = await pdfDoc.save();
-	await fs.writeFile(outputPath, modifiedPdfBytes);
-	console.log(`\nSaved modified PDF: ${outputPath}`);
+  // Save the modified PDF
+  const outputPath = join(outputDir, "test-form-with-fields.pdf");
+  const modifiedPdfBytes = await pdfDoc.save();
+  await fs.writeFile(outputPath, modifiedPdfBytes);
+  console.log(`\nSaved modified PDF: ${outputPath}`);
 
-	return outputPath;
+  return outputPath;
 }
 
 /**
@@ -300,68 +300,68 @@ async function addFormFields(pdfDoc, pages, fieldPositions, pageInfo) {
  * This eliminates the need for a separate JSON file
  */
 async function embedPositionsInPdf(pdfPath, fieldPositions, pageInfo) {
-	console.log("\n=== Step 4: Embed positions in PDF metadata ===\n");
+  console.log("\n=== Step 4: Embed positions in PDF metadata ===\n");
 
-	const pdfBytes = await fs.readFile(pdfPath);
-	const pdfDoc = await PDFDocument.load(pdfBytes);
+  const pdfBytes = await fs.readFile(pdfPath);
+  const pdfDoc = await PDFDocument.load(pdfBytes);
 
-	// Create metadata object
-	const formMetadata = {
-		version: 1,
-		pageInfo,
-		fields: fieldPositions,
-	};
+  // Create metadata object
+  const formMetadata = {
+    version: 1,
+    pageInfo,
+    fields: fieldPositions,
+  };
 
-	// Embed as custom metadata using PDF keywords (hacky but works)
-	// Better approach would be XMP metadata but pdf-lib has limited support
-	const existingKeywords = pdfDoc.getKeywords() || [];
-	const metadataMarker = `__MDFORGE_FORM_FIELDS__${JSON.stringify(formMetadata)}__END_MDFORGE__`;
+  // Embed as custom metadata using PDF keywords (hacky but works)
+  // Better approach would be XMP metadata but pdf-lib has limited support
+  const existingKeywords = pdfDoc.getKeywords() || [];
+  const metadataMarker = `__MDFORGE_FORM_FIELDS__${JSON.stringify(formMetadata)}__END_MDFORGE__`;
 
-	pdfDoc.setKeywords([...existingKeywords, metadataMarker]);
-	pdfDoc.setSubject(
-		"PDF with embedded form field positions for post-processing",
-	);
+  pdfDoc.setKeywords([...existingKeywords, metadataMarker]);
+  pdfDoc.setSubject(
+    "PDF with embedded form field positions for post-processing",
+  );
 
-	const outputPath = join(outputDir, "test-form-with-metadata.pdf");
-	const modifiedBytes = await pdfDoc.save();
-	await fs.writeFile(outputPath, modifiedBytes);
+  const outputPath = join(outputDir, "test-form-with-metadata.pdf");
+  const modifiedBytes = await pdfDoc.save();
+  await fs.writeFile(outputPath, modifiedBytes);
 
-	console.log(`Embedded metadata in: ${outputPath}`);
-	console.log(`Metadata size: ${metadataMarker.length} bytes`);
+  console.log(`Embedded metadata in: ${outputPath}`);
+  console.log(`Metadata size: ${metadataMarker.length} bytes`);
 
-	// Verify we can read it back
-	const reloadedPdf = await PDFDocument.load(modifiedBytes);
-	const keywords = reloadedPdf.getKeywords();
-	console.log(
-		`Keywords type: ${typeof keywords}, value: ${JSON.stringify(keywords)?.slice(0, 100)}`,
-	);
+  // Verify we can read it back
+  const reloadedPdf = await PDFDocument.load(modifiedBytes);
+  const keywords = reloadedPdf.getKeywords();
+  console.log(
+    `Keywords type: ${typeof keywords}, value: ${JSON.stringify(keywords)?.slice(0, 100)}`,
+  );
 
-	// Keywords might be a string or array depending on pdf-lib version
-	const keywordStr = Array.isArray(keywords)
-		? keywords.join(" ")
-		: keywords || "";
-	const match = keywordStr.match(/__MDFORGE_FORM_FIELDS__(.+?)__END_MDFORGE__/);
-	if (match) {
-		const extracted = JSON.parse(match[1]);
-		console.log(
-			`Successfully extracted ${extracted.fields.length} field definitions from PDF metadata`,
-		);
-	} else {
-		console.log(
-			"✗ Failed to extract metadata (might be in a different format)",
-		);
-	}
+  // Keywords might be a string or array depending on pdf-lib version
+  const keywordStr = Array.isArray(keywords)
+    ? keywords.join(" ")
+    : keywords || "";
+  const match = keywordStr.match(/__MDFORGE_FORM_FIELDS__(.+?)__END_MDFORGE__/);
+  if (match) {
+    const extracted = JSON.parse(match[1]);
+    console.log(
+      `Successfully extracted ${extracted.fields.length} field definitions from PDF metadata`,
+    );
+  } else {
+    console.log(
+      "✗ Failed to extract metadata (might be in a different format)",
+    );
+  }
 
-	return outputPath;
+  return outputPath;
 }
 
 /**
  * Step 5: Full pipeline - generate, embed metadata, add form fields
  */
 async function fullPipeline() {
-	console.log("\n=== Step 5: Full pipeline test ===\n");
+  console.log("\n=== Step 5: Full pipeline test ===\n");
 
-	const html = `
+  const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -480,239 +480,239 @@ async function fullPipeline() {
 </html>
 `;
 
-	const browser = await puppeteer.launch();
-	const page = await browser.newPage();
-	await page.setContent(html, { waitUntil: "networkidle0" });
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.setContent(html, { waitUntil: "networkidle0" });
 
-	// Extract field positions
-	const fieldPositions = await page.evaluate(() => {
-		const fields = document.querySelectorAll("[data-field]");
-		return Array.from(fields)
-			.map((field) => {
-				const type = field.dataset.type;
-				const options = field.dataset.options?.split(",") || [];
+  // Extract field positions
+  const fieldPositions = await page.evaluate(() => {
+    const fields = document.querySelectorAll("[data-field]");
+    return Array.from(fields)
+      .map((field) => {
+        const type = field.dataset.type;
+        const options = field.dataset.options?.split(",") || [];
 
-				// For radio/checkbox groups, get positions of each option
-				if (type === "radio" || type === "checkboxgroup") {
-					const inputs = field.querySelectorAll("input");
-					const optionPositions = Array.from(inputs).map((input, i) => {
-						const rect = input.getBoundingClientRect();
-						return {
-							value: input.value,
-							label: options[i] || input.value,
-							x: rect.x,
-							y: rect.y,
-							width: rect.width,
-							height: rect.height,
-						};
-					});
-					// Get bounding box of the whole group
-					const groupRect = field.getBoundingClientRect();
-					return {
-						name: field.dataset.field,
-						type,
-						options: optionPositions,
-						x: groupRect.x,
-						y: groupRect.y,
-						width: groupRect.width,
-						height: groupRect.height,
-					};
-				}
+        // For radio/checkbox groups, get positions of each option
+        if (type === "radio" || type === "checkboxgroup") {
+          const inputs = field.querySelectorAll("input");
+          const optionPositions = Array.from(inputs).map((input, i) => {
+            const rect = input.getBoundingClientRect();
+            return {
+              value: input.value,
+              label: options[i] || input.value,
+              x: rect.x,
+              y: rect.y,
+              width: rect.width,
+              height: rect.height,
+            };
+          });
+          // Get bounding box of the whole group
+          const groupRect = field.getBoundingClientRect();
+          return {
+            name: field.dataset.field,
+            type,
+            options: optionPositions,
+            x: groupRect.x,
+            y: groupRect.y,
+            width: groupRect.width,
+            height: groupRect.height,
+          };
+        }
 
-				// For single inputs
-				const input = field.querySelector("input, textarea, select");
-				if (!input) return null;
-				const rect = input.getBoundingClientRect();
-				return {
-					name: field.dataset.field,
-					type,
-					options,
-					x: rect.x,
-					y: rect.y,
-					width: rect.width,
-					height: rect.height,
-				};
-			})
-			.filter(Boolean);
-	});
+        // For single inputs
+        const input = field.querySelector("input, textarea, select");
+        if (!input) return null;
+        const rect = input.getBoundingClientRect();
+        return {
+          name: field.dataset.field,
+          type,
+          options,
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+        };
+      })
+      .filter(Boolean);
+  });
 
-	const pageInfo = await page.evaluate(() => ({
-		width: document.documentElement.scrollWidth,
-		height: document.documentElement.scrollHeight,
-	}));
+  const pageInfo = await page.evaluate(() => ({
+    width: document.documentElement.scrollWidth,
+    height: document.documentElement.scrollHeight,
+  }));
 
-	// Generate PDF
-	const pdfBuffer = await page.pdf({
-		format: "A4",
-		printBackground: true,
-		margin: { top: "20mm", right: "20mm", bottom: "20mm", left: "20mm" },
-	});
+  // Generate PDF
+  const pdfBuffer = await page.pdf({
+    format: "A4",
+    printBackground: true,
+    margin: { top: "20mm", right: "20mm", bottom: "20mm", left: "20mm" },
+  });
 
-	await browser.close();
+  await browser.close();
 
-	// Load PDF and add form fields
-	const pdfDoc = await PDFDocument.load(pdfBuffer);
-	const pages = pdfDoc.getPages();
-	const firstPage = pages[0];
-	const { width: pdfWidth, height: pdfHeight } = firstPage.getSize();
-	const form = pdfDoc.getForm();
+  // Load PDF and add form fields
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  const pages = pdfDoc.getPages();
+  const firstPage = pages[0];
+  const { width: pdfWidth, height: pdfHeight } = firstPage.getSize();
+  const form = pdfDoc.getForm();
 
-	const marginPt = 20 * (72 / 25.4);
-	const scale = 72 / 96;
+  const marginPt = 20 * (72 / 25.4);
+  const scale = 72 / 96;
 
-	console.log("Adding form fields:");
-	for (const field of fieldPositions) {
-		console.log(`\n  ${field.name} (${field.type}):`);
+  console.log("Adding form fields:");
+  for (const field of fieldPositions) {
+    console.log(`\n  ${field.name} (${field.type}):`);
 
-		try {
-			if (field.type === "text" || field.type === "textarea") {
-				const pdfX = marginPt + field.x * scale;
-				const pdfY = pdfHeight - marginPt - (field.y + field.height) * scale;
-				const pdfW = field.width * scale;
-				const pdfH = field.height * scale;
+    try {
+      if (field.type === "text" || field.type === "textarea") {
+        const pdfX = marginPt + field.x * scale;
+        const pdfY = pdfHeight - marginPt - (field.y + field.height) * scale;
+        const pdfW = field.width * scale;
+        const pdfH = field.height * scale;
 
-				console.log(
-					`    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${pdfW.toFixed(0)}x${pdfH.toFixed(0)}]`,
-				);
+        console.log(
+          `    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${pdfW.toFixed(0)}x${pdfH.toFixed(0)}]`,
+        );
 
-				const textField = form.createTextField(field.name);
-				textField.addToPage(firstPage, {
-					x: pdfX,
-					y: pdfY,
-					width: pdfW,
-					height: pdfH,
-					borderColor: rgb(0.4, 0.4, 0.4),
-					backgroundColor: rgb(1, 1, 0.95),
-					borderWidth: 0,
-				});
-				if (field.type === "textarea") {
-					textField.enableMultiline();
-				}
-				console.log(`    ✓ Added ${field.type} field`);
-			} else if (field.type === "checkbox") {
-				const pdfX = marginPt + field.x * scale;
-				const pdfY = pdfHeight - marginPt - (field.y + field.height) * scale;
-				const size = Math.min(field.width, field.height) * scale;
+        const textField = form.createTextField(field.name);
+        textField.addToPage(firstPage, {
+          x: pdfX,
+          y: pdfY,
+          width: pdfW,
+          height: pdfH,
+          borderColor: rgb(0.4, 0.4, 0.4),
+          backgroundColor: rgb(1, 1, 0.95),
+          borderWidth: 0,
+        });
+        if (field.type === "textarea") {
+          textField.enableMultiline();
+        }
+        console.log(`    ✓ Added ${field.type} field`);
+      } else if (field.type === "checkbox") {
+        const pdfX = marginPt + field.x * scale;
+        const pdfY = pdfHeight - marginPt - (field.y + field.height) * scale;
+        const size = Math.min(field.width, field.height) * scale;
 
-				console.log(
-					`    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`,
-				);
+        console.log(
+          `    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`,
+        );
 
-				const checkbox = form.createCheckBox(field.name);
-				checkbox.addToPage(firstPage, {
-					x: pdfX,
-					y: pdfY,
-					width: size,
-					height: size,
-					borderColor: rgb(0.4, 0.4, 0.4),
-					borderWidth: 1,
-				});
-				console.log(`    ✓ Added checkbox`);
-			} else if (field.type === "select") {
-				const pdfX = marginPt + field.x * scale;
-				const pdfY = pdfHeight - marginPt - (field.y + field.height) * scale;
-				const pdfW = field.width * scale;
-				const pdfH = field.height * scale;
+        const checkbox = form.createCheckBox(field.name);
+        checkbox.addToPage(firstPage, {
+          x: pdfX,
+          y: pdfY,
+          width: size,
+          height: size,
+          borderColor: rgb(0.4, 0.4, 0.4),
+          borderWidth: 1,
+        });
+        console.log(`    ✓ Added checkbox`);
+      } else if (field.type === "select") {
+        const pdfX = marginPt + field.x * scale;
+        const pdfY = pdfHeight - marginPt - (field.y + field.height) * scale;
+        const pdfW = field.width * scale;
+        const pdfH = field.height * scale;
 
-				console.log(
-					`    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${pdfW.toFixed(0)}x${pdfH.toFixed(0)}]`,
-				);
-				console.log(`    Options: ${field.options.join(", ")}`);
+        console.log(
+          `    Position: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${pdfW.toFixed(0)}x${pdfH.toFixed(0)}]`,
+        );
+        console.log(`    Options: ${field.options.join(", ")}`);
 
-				const dropdown = form.createDropdown(field.name);
-				dropdown.addOptions(
-					field.options.length > 0 ? field.options : ["Option 1", "Option 2"],
-				);
-				dropdown.addToPage(firstPage, {
-					x: pdfX,
-					y: pdfY,
-					width: pdfW,
-					height: pdfH,
-					borderColor: rgb(0.4, 0.4, 0.4),
-					borderWidth: 1,
-				});
-				console.log(
-					`    ✓ Added dropdown with ${field.options.length} options`,
-				);
-			} else if (field.type === "radio") {
-				// Radio button group - each option is a separate radio button
-				console.log(`    Options: ${field.options.length} radio buttons`);
+        const dropdown = form.createDropdown(field.name);
+        dropdown.addOptions(
+          field.options.length > 0 ? field.options : ["Option 1", "Option 2"],
+        );
+        dropdown.addToPage(firstPage, {
+          x: pdfX,
+          y: pdfY,
+          width: pdfW,
+          height: pdfH,
+          borderColor: rgb(0.4, 0.4, 0.4),
+          borderWidth: 1,
+        });
+        console.log(
+          `    ✓ Added dropdown with ${field.options.length} options`,
+        );
+      } else if (field.type === "radio") {
+        // Radio button group - each option is a separate radio button
+        console.log(`    Options: ${field.options.length} radio buttons`);
 
-				const radioGroup = form.createRadioGroup(field.name);
+        const radioGroup = form.createRadioGroup(field.name);
 
-				for (const opt of field.options) {
-					const pdfX = marginPt + opt.x * scale;
-					const pdfY = pdfHeight - marginPt - (opt.y + opt.height) * scale;
-					const size = Math.min(opt.width, opt.height) * scale;
+        for (const opt of field.options) {
+          const pdfX = marginPt + opt.x * scale;
+          const pdfY = pdfHeight - marginPt - (opt.y + opt.height) * scale;
+          const size = Math.min(opt.width, opt.height) * scale;
 
-					console.log(
-						`      - ${opt.value}: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`,
-					);
+          console.log(
+            `      - ${opt.value}: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`,
+          );
 
-					radioGroup.addOptionToPage(opt.value, firstPage, {
-						x: pdfX,
-						y: pdfY,
-						width: size,
-						height: size,
-						borderColor: rgb(0.4, 0.4, 0.4),
-						borderWidth: 1,
-					});
-				}
-				console.log(
-					`    ✓ Added radio group with ${field.options.length} options`,
-				);
-			} else if (field.type === "checkboxgroup") {
-				// Checkbox group - each option is a separate checkbox
-				console.log(`    Options: ${field.options.length} checkboxes`);
+          radioGroup.addOptionToPage(opt.value, firstPage, {
+            x: pdfX,
+            y: pdfY,
+            width: size,
+            height: size,
+            borderColor: rgb(0.4, 0.4, 0.4),
+            borderWidth: 1,
+          });
+        }
+        console.log(
+          `    ✓ Added radio group with ${field.options.length} options`,
+        );
+      } else if (field.type === "checkboxgroup") {
+        // Checkbox group - each option is a separate checkbox
+        console.log(`    Options: ${field.options.length} checkboxes`);
 
-				for (const opt of field.options) {
-					const pdfX = marginPt + opt.x * scale;
-					const pdfY = pdfHeight - marginPt - (opt.y + opt.height) * scale;
-					const size = Math.min(opt.width, opt.height) * scale;
+        for (const opt of field.options) {
+          const pdfX = marginPt + opt.x * scale;
+          const pdfY = pdfHeight - marginPt - (opt.y + opt.height) * scale;
+          const size = Math.min(opt.width, opt.height) * scale;
 
-					console.log(
-						`      - ${opt.value}: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`,
-					);
+          console.log(
+            `      - ${opt.value}: [${pdfX.toFixed(0)}, ${pdfY.toFixed(0)}, ${size.toFixed(0)}x${size.toFixed(0)}]`,
+          );
 
-					// Each checkbox in a group needs a unique name
-					const checkbox = form.createCheckBox(`${field.name}_${opt.value}`);
-					checkbox.addToPage(firstPage, {
-						x: pdfX,
-						y: pdfY,
-						width: size,
-						height: size,
-						borderColor: rgb(0.4, 0.4, 0.4),
-						borderWidth: 1,
-					});
-				}
-				console.log(
-					`    ✓ Added checkbox group with ${field.options.length} checkboxes`,
-				);
-			}
-		} catch (err) {
-			console.log(`    ✗ Error: ${err.message}`);
-		}
-	}
+          // Each checkbox in a group needs a unique name
+          const checkbox = form.createCheckBox(`${field.name}_${opt.value}`);
+          checkbox.addToPage(firstPage, {
+            x: pdfX,
+            y: pdfY,
+            width: size,
+            height: size,
+            borderColor: rgb(0.4, 0.4, 0.4),
+            borderWidth: 1,
+          });
+        }
+        console.log(
+          `    ✓ Added checkbox group with ${field.options.length} checkboxes`,
+        );
+      }
+    } catch (err) {
+      console.log(`    ✗ Error: ${err.message}`);
+    }
+  }
 
-	// Save final PDF
-	const outputPath = join(
-		outputDir,
-		`${versionedName("registration-form-fillable")}.pdf`,
-	);
-	await fs.writeFile(outputPath, await pdfDoc.save());
-	console.log(`\nGenerated fillable PDF: ${outputPath}`);
+  // Save final PDF
+  const outputPath = join(
+    outputDir,
+    `${versionedName("registration-form-fillable")}.pdf`,
+  );
+  await fs.writeFile(outputPath, await pdfDoc.save());
+  console.log(`\nGenerated fillable PDF: ${outputPath}`);
 
-	return outputPath;
+  return outputPath;
 }
 
 /**
  * Summary of findings
  */
 function printSummary() {
-	console.log("\n" + "=".repeat(60));
-	console.log("SUMMARY: Form Post-Processing Feasibility");
-	console.log("=".repeat(60));
-	console.log(`
+  console.log("\n" + "=".repeat(60));
+  console.log("SUMMARY: Form Post-Processing Feasibility");
+  console.log("=".repeat(60));
+  console.log(`
 ✓ FEASIBLE: Post-processing Puppeteer PDFs with pdf-lib works!
 
 APPROACH:
@@ -753,28 +753,28 @@ NEXT STEPS:
 
 // Run the investigation
 async function main() {
-	console.log("=".repeat(60));
-	console.log("PDF Form Post-Processing Investigation");
-	console.log("=".repeat(60));
+  console.log("=".repeat(60));
+  console.log("PDF Form Post-Processing Investigation");
+  console.log("=".repeat(60));
 
-	try {
-		const { pdfPath, fieldPositions, pageInfo } = await generateTestPdf();
-		const { pdfDoc, pages } = await analyzePdf(pdfPath);
-		await addFormFields(pdfDoc, pages, fieldPositions, pageInfo);
-		await embedPositionsInPdf(pdfPath, fieldPositions, pageInfo);
-		await fullPipeline();
-		printSummary();
+  try {
+    const { pdfPath, fieldPositions, pageInfo } = await generateTestPdf();
+    const { pdfDoc, pages } = await analyzePdf(pdfPath);
+    await addFormFields(pdfDoc, pages, fieldPositions, pageInfo);
+    await embedPositionsInPdf(pdfPath, fieldPositions, pageInfo);
+    await fullPipeline();
+    printSummary();
 
-		console.log("\nGenerated files in tmp/:");
-		const files = await fs.readdir(outputDir);
-		for (const file of files) {
-			const stat = await fs.stat(join(outputDir, file));
-			console.log(`  ${file} (${(stat.size / 1024).toFixed(1)} KB)`);
-		}
-	} catch (error) {
-		console.error("Error:", error);
-		process.exit(1);
-	}
+    console.log("\nGenerated files in tmp/:");
+    const files = await fs.readdir(outputDir);
+    for (const file of files) {
+      const stat = await fs.stat(join(outputDir, file));
+      console.log(`  ${file} (${(stat.size / 1024).toFixed(1)} KB)`);
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    process.exit(1);
+  }
 }
 
 main();

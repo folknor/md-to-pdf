@@ -1,45 +1,45 @@
 {
-	"name": "@mdforge/desktop",
-	"version": "1.0.0",
-	"description": "Desktop app for mdforge - Convert Markdown to PDF",
-	"type": "module",
-	"main": "./out/main/index.js",
-	"author": {
-		"name": "folknor",
-		"url": "https://github.com/folknor"
-	},
-	"scripts": {
-		"dev": "electron-vite dev",
-		"build": "electron-vite build",
-		"preview": "electron-vite preview",
-		"package": "electron-builder",
-		"package:win": "electron-builder --win --portable",
-		"package:linux": "electron-builder --linux AppImage",
-		"package:mac": "electron-builder --mac zip"
-	},
-	"dependencies": {
-		"@mdforge/core": "workspace:*",
-		"fflate": "^0.8.2",
-		"puppeteer": "^24.36.1"
-	},
-	"devDependencies": {
-		"@electron-toolkit/utils": "^4.0.0",
-		"@tailwindcss/postcss": "^4.1.18",
-		"@types/react": "^19.2.10",
-		"@types/react-dom": "^19.2.3",
-		"@vitejs/plugin-react": "^5.1.2",
-		"electron": "^40.1.0",
-		"electron-builder": "^26.4.0",
-		"electron-vite": "^5.0.0",
-		"postcss": "^8.5.6",
-		"react": "^19.2.4",
-		"react-dom": "^19.2.4",
-		"tailwindcss": "^4.1.18",
-		"typescript": "5.9.3"
-	},
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/folknor/mdforge"
-	}
+  "name": "@mdforge/desktop",
+  "version": "1.0.0",
+  "description": "Desktop app for mdforge - Convert Markdown to PDF",
+  "type": "module",
+  "main": "./out/main/index.js",
+  "author": {
+    "name": "folknor",
+    "url": "https://github.com/folknor"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "package": "electron-builder",
+    "package:win": "electron-builder --win --portable",
+    "package:linux": "electron-builder --linux AppImage",
+    "package:mac": "electron-builder --mac zip"
+  },
+  "dependencies": {
+    "@mdforge/core": "workspace:*",
+    "fflate": "^0.8.2",
+    "puppeteer": "^24.36.1"
+  },
+  "devDependencies": {
+    "@electron-toolkit/utils": "^4.0.0",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/react": "^19.2.10",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "electron": "^40.1.0",
+    "electron-builder": "^26.4.0",
+    "electron-vite": "^5.0.0",
+    "postcss": "^8.5.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwindcss": "^4.1.18",
+    "typescript": "5.9.3"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/folknor/mdforge"
+  }
 }

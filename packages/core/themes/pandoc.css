@@ -9,18 +9,18 @@
    ========================================================================== */
 
 :root {
-	/* Base font size - if changed, update font_scale logic in convert.ts */
-	--font-size: 12pt;
-	--line-height: 1.7;
+  /* Base font size - if changed, update font_scale logic in convert.ts */
+  --font-size: 12pt;
+  --line-height: 1.7;
 
-	--color-text: #444;
-	--color-text-muted: #666;
-	--color-heading: #111;
-	--color-background: #fefefe;
-	--color-primary: #0645ad;
-	--color-border: #aaa;
-	--color-border-light: #ddd;
-	--color-code-bg: #f8f8f8;
+  --color-text: #444;
+  --color-text-muted: #666;
+  --color-heading: #111;
+  --color-background: #fefefe;
+  --color-primary: #0645ad;
+  --color-border: #aaa;
+  --color-border-light: #ddd;
+  --color-code-bg: #f8f8f8;
 }
 
 /* ==========================================================================
@@ -28,20 +28,20 @@
    ========================================================================== */
 
 @page {
-	size: a4;
-	margin: 20mm;
+  size: a4;
+  margin: 20mm;
 }
 
 html {
-	font-size: 100%;
+  font-size: 100%;
 }
 
 body {
-	font-family: var(--font-body);
-	font-size: var(--font-size);
-	line-height: var(--line-height);
-	color: var(--color-text);
-	background-color: var(--color-background);
+  font-family: var(--font-body);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background-color: var(--color-background);
 }
 
 /* ==========================================================================
@@ -54,54 +54,54 @@ h3,
 h4,
 h5,
 h6 {
-	color: var(--color-heading);
-	font-weight: normal;
-	line-height: 1.25;
-	margin-top: 1.5em;
-	margin-bottom: 0.5em;
-	page-break-after: avoid;
+  color: var(--color-heading);
+  font-weight: normal;
+  line-height: 1.25;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  page-break-after: avoid;
 }
 
 h4,
 h5,
 h6 {
-	font-weight: 600;
+  font-weight: 600;
 }
 
 h1 {
-	font-size: 2em;
-	margin-top: 1em;
+  font-size: 2em;
+  margin-top: 1em;
 }
 h2 {
-	font-size: 1.75em;
+  font-size: 1.75em;
 }
 h3 {
-	font-size: 1.5em;
+  font-size: 1.5em;
 }
 h4 {
-	font-size: 1.25em;
+  font-size: 1.25em;
 }
 h5 {
-	font-size: 1.1em;
+  font-size: 1.1em;
 }
 h6 {
-	font-size: 1em;
+  font-size: 1em;
 }
 
 /* Document header styling */
 .title {
-	text-align: center;
+  text-align: center;
 }
 
 .author {
-	font-size: 1.2em;
-	text-align: center;
-	color: var(--color-text-muted);
+  font-size: 1.2em;
+  text-align: center;
+  color: var(--color-text-muted);
 }
 
 .date {
-	text-align: center;
-	color: var(--color-text-muted);
+  text-align: center;
+  color: var(--color-text-muted);
 }
 
 /* ==========================================================================
@@ -109,32 +109,32 @@ h6 {
    ========================================================================== */
 
 p {
-	margin: 1em 0;
+  margin: 1em 0;
 }
 
 hr {
-	display: block;
-	height: 2px;
-	border: 0;
-	border-top: 1px solid var(--color-border);
-	border-bottom: 1px solid var(--color-border-light);
-	margin: 2em 0;
-	padding: 0;
+  display: block;
+  height: 2px;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-light);
+  margin: 2em 0;
+  padding: 0;
 }
 
 blockquote {
-	margin: 1em 0;
-	padding-left: 1.5em;
-	border-left: 4px solid var(--color-border-light);
-	color: var(--color-text-muted);
-	break-inside: avoid;
+  margin: 1em 0;
+  padding-left: 1.5em;
+  border-left: 4px solid var(--color-border-light);
+  color: var(--color-text-muted);
+  break-inside: avoid;
 }
 
 blockquote > p:first-child {
-	margin-top: 0;
+  margin-top: 0;
 }
 blockquote > p:last-child {
-	margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 /* ==========================================================================
@@ -143,47 +143,47 @@ blockquote > p:last-child {
 
 ul,
 ol {
-	margin: 1em 0;
-	padding-left: 2em;
+  margin: 1em 0;
+  padding-left: 2em;
 }
 
 li {
-	margin-top: 0.25em;
+  margin-top: 0.25em;
 }
 
 li > p:first-child {
-	margin-top: 0;
+  margin-top: 0;
 }
 li > p:last-child {
-	margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 ul ul,
 ol ol,
 ul ol,
 ol ul {
-	margin: 0.3em 0;
+  margin: 0.3em 0;
 }
 
 dl {
-	margin: 1em 0;
+  margin: 1em 0;
 }
 
 dt {
-	font-weight: 600;
-	margin-top: 0.8em;
+  font-weight: 600;
+  margin-top: 0.8em;
 }
 
 dt:first-child {
-	margin-top: 0;
+  margin-top: 0;
 }
 
 dd {
-	margin: 0 0 0.8em 2em;
+  margin: 0 0 0.8em 2em;
 }
 
 dd:last-child {
-	margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 /* ==========================================================================
@@ -191,12 +191,12 @@ dd:last-child {
    ========================================================================== */
 
 a {
-	color: var(--color-primary);
-	text-decoration: none;
+  color: var(--color-primary);
+  text-decoration: none;
 }
 
 a:hover {
-	text-decoration: underline;
+  text-decoration: underline;
 }
 
 /* ==========================================================================
@@ -206,38 +206,38 @@ a:hover {
 code,
 kbd,
 samp {
-	font-family: var(--font-mono);
-	font-size: 0.9em;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
 }
 
 :not(pre) > code {
-	background-color: var(--color-code-bg);
-	padding: 0.1em 0.3em;
-	border-radius: 3px;
+  background-color: var(--color-code-bg);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
 }
 
 pre {
-	font-family: var(--font-mono);
-	font-size: 0.9em;
-	background-color: var(--color-code-bg);
-	padding: 1em;
-	overflow-x: auto;
-	white-space: pre-wrap;
-	word-wrap: break-word;
-	break-inside: avoid;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background-color: var(--color-code-bg);
+  padding: 1em;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  break-inside: avoid;
 }
 
 pre > code {
-	background: none;
-	padding: 0;
-	font-size: inherit;
+  background: none;
+  padding: 0;
+  font-size: inherit;
 }
 
 kbd {
-	background-color: var(--color-code-bg);
-	border: 1px solid var(--color-border);
-	border-radius: 3px;
-	padding: 0.1em 0.4em;
+  background-color: var(--color-code-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 0.1em 0.4em;
 }
 
 /* ==========================================================================
@@ -245,22 +245,22 @@ kbd {
    ========================================================================== */
 
 table {
-	width: 100%;
-	border-collapse: collapse;
-	margin: 1.5em 0;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
 }
 
 th,
 td {
-	padding: 0.4em 1em;
-	text-align: left;
-	vertical-align: top;
-	border: 1px solid var(--color-border-light);
+  padding: 0.4em 1em;
+  text-align: left;
+  vertical-align: top;
+  border: 1px solid var(--color-border-light);
 }
 
 th {
-	font-weight: 600;
-	background-color: #eee;
+  font-weight: 600;
+  background-color: #eee;
 }
 
 /* ==========================================================================
@@ -268,25 +268,25 @@ th {
    ========================================================================== */
 
 img {
-	max-width: 100%;
-	height: auto;
+  max-width: 100%;
+  height: auto;
 }
 
 figure {
-	display: block;
-	margin: 1.5em 0;
-	text-align: center;
+  display: block;
+  margin: 1.5em 0;
+  text-align: center;
 }
 
 figure img {
-	margin: 0 auto;
+  margin: 0 auto;
 }
 
 figcaption {
-	font-size: 0.9em;
-	color: var(--color-text-muted);
-	font-style: italic;
-	margin-top: 0.5em;
+  font-size: 0.9em;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-top: 0.5em;
 }
 
 /* ==========================================================================
@@ -295,48 +295,48 @@ figcaption {
 
 strong,
 b {
-	font-weight: 600;
+  font-weight: 600;
 }
 
 em,
 i,
 dfn {
-	font-style: italic;
+  font-style: italic;
 }
 
 sub,
 sup {
-	font-size: 75%;
-	line-height: 0;
-	position: relative;
-	vertical-align: baseline;
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
 }
 
 sup {
-	top: -0.5em;
+  top: -0.5em;
 }
 sub {
-	bottom: -0.25em;
+  bottom: -0.25em;
 }
 
 mark {
-	background-color: #ff0;
-	padding: 0.1em 0.2em;
+  background-color: #ff0;
+  padding: 0.1em 0.2em;
 }
 
 ins {
-	background-color: #ff9;
-	text-decoration: none;
+  background-color: #ff9;
+  text-decoration: none;
 }
 
 del {
-	color: var(--color-text-muted);
-	text-decoration: line-through;
+  color: var(--color-text-muted);
+  text-decoration: line-through;
 }
 
 abbr[title] {
-	text-decoration: underline dotted;
-	cursor: help;
+  text-decoration: underline dotted;
+  cursor: help;
 }
 
 /* ==========================================================================
@@ -349,17 +349,17 @@ table,
 figure,
 img,
 tr {
-	page-break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 /* Keep table headers with content */
 thead {
-	display: table-header-group;
+  display: table-header-group;
 }
 
 p,
 h2,
 h3 {
-	orphans: 3;
-	widows: 3;
+  orphans: 3;
+  widows: 3;
 }

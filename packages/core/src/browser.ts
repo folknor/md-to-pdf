@@ -4,8 +4,8 @@
  */
 
 export {
-	type FontPairingPreset,
-	fontPairingPresets,
-	type Theme,
-	themes,
+  type FontPairingPreset,
+  fontPairingPresets,
+  type Theme,
+  themes,
 } from "./lib/presets.js";

@@ -4,20 +4,20 @@ import type { MarkedExtension, Token, Tokens } from "marked";
  * Supported admonition types
  */
 const ADMONITION_TYPES = [
-	"note",
-	"tip",
-	"info",
-	"warning",
-	"danger",
-	"caution",
-	"important",
-	"success",
-	"failure",
-	"bug",
-	"example",
-	"quote",
-	"abstract",
-	"question",
+  "note",
+  "tip",
+  "info",
+  "warning",
+  "danger",
+  "caution",
+  "important",
+  "success",
+  "failure",
+  "bug",
+  "example",
+  "quote",
+  "abstract",
+  "question",
 ] as const;
 
 type AdmonitionType = (typeof ADMONITION_TYPES)[number];
@@ -41,102 +41,102 @@ type AdmonitionType = (typeof ADMONITION_TYPES)[number];
  * success, failure, bug, example, quote, abstract, question
  */
 export function admonitions(): MarkedExtension {
-	// Pattern to match admonition start: !!! type ["optional title"]
-	const startPattern = /^!{3}\s+(\w+)(?:\s+"([^"]*)")?\s*\n/;
+  // Pattern to match admonition start: !!! type ["optional title"]
+  const startPattern = /^!{3}\s+(\w+)(?:\s+"([^"]*)")?\s*\n/;
 
-	return {
-		extensions: [
-			{
-				name: "admonition",
-				level: "block",
-				start(src: string): number | undefined {
-					const match = src.match(startPattern);
-					return match?.index;
-				},
-				tokenizer(
-					this: {
-						lexer: { blockTokens: (src: string, tokens: Token[]) => Token[] };
-					},
-					src: string,
-				): Tokens.Generic | undefined {
-					const match = startPattern.exec(src);
-					if (!match) return;
+  return {
+    extensions: [
+      {
+        name: "admonition",
+        level: "block",
+        start(src: string): number | undefined {
+          const match = src.match(startPattern);
+          return match?.index;
+        },
+        tokenizer(
+          this: {
+            lexer: { blockTokens: (src: string, tokens: Token[]) => Token[] };
+          },
+          src: string,
+        ): Tokens.Generic | undefined {
+          const match = startPattern.exec(src);
+          if (!match) return;
 
-					const typeRaw = match[1]?.toLowerCase() ?? "note";
-					const type: AdmonitionType = ADMONITION_TYPES.includes(
-						typeRaw as AdmonitionType,
-					)
-						? (typeRaw as AdmonitionType)
-						: "note";
+          const typeRaw = match[1]?.toLowerCase() ?? "note";
+          const type: AdmonitionType = ADMONITION_TYPES.includes(
+            typeRaw as AdmonitionType,
+          )
+            ? (typeRaw as AdmonitionType)
+            : "note";
 
-					// Title: custom if provided, empty string means no title, undefined means use type
-					const customTitle = match[2];
-					const title =
-						customTitle !== undefined
-							? customTitle
-							: type.charAt(0).toUpperCase() + type.slice(1);
+          // Title: custom if provided, empty string means no title, undefined means use type
+          const customTitle = match[2];
+          const title =
+            customTitle !== undefined
+              ? customTitle
+              : type.charAt(0).toUpperCase() + type.slice(1);
 
-					// Find the content block (indented lines)
-					const afterHeader = src.slice(match[0].length);
-					const contentLines: string[] = [];
-					const lines = afterHeader.split("\n");
+          // Find the content block (indented lines)
+          const afterHeader = src.slice(match[0].length);
+          const contentLines: string[] = [];
+          const lines = afterHeader.split("\n");
 
-					for (const line of lines) {
-						// Content lines must be indented (4 spaces or 1 tab) or empty
-						if (line === "" || /^(?: {4}|\t)/.test(line)) {
-							// Remove the indentation
-							contentLines.push(line.replace(/^(?: {4}|\t)/, ""));
-						} else {
-							break;
-						}
-					}
+          for (const line of lines) {
+            // Content lines must be indented (4 spaces or 1 tab) or empty
+            if (line === "" || /^(?: {4}|\t)/.test(line)) {
+              // Remove the indentation
+              contentLines.push(line.replace(/^(?: {4}|\t)/, ""));
+            } else {
+              break;
+            }
+          }
 
-					// Remove trailing empty lines
-					while (
-						contentLines.length > 0 &&
-						contentLines[contentLines.length - 1] === ""
-					) {
-						contentLines.pop();
-					}
+          // Remove trailing empty lines
+          while (
+            contentLines.length > 0 &&
+            contentLines[contentLines.length - 1] === ""
+          ) {
+            contentLines.pop();
+          }
 
-					const content = contentLines.join("\n");
-					const raw =
-						match[0] +
-						lines.slice(0, contentLines.length).join("\n") +
-						(contentLines.length > 0 ? "\n" : "");
+          const content = contentLines.join("\n");
+          const raw =
+            match[0] +
+            lines.slice(0, contentLines.length).join("\n") +
+            (contentLines.length > 0 ? "\n" : "");
 
-					// Parse content as markdown tokens
-					const contentTokens: Token[] = [];
-					this.lexer.blockTokens(content, contentTokens);
+          // Parse content as markdown tokens
+          const contentTokens: Token[] = [];
+          this.lexer.blockTokens(content, contentTokens);
 
-					return {
-						type: "admonition",
-						raw,
-						admonitionType: type,
-						title,
-						tokens: contentTokens,
-					};
-				},
-				renderer(
-					this: { parser: { parse: (tokens: Token[]) => string } },
-					token: Tokens.Generic,
-				): string {
-					const { admonitionType, title, tokens } = token as unknown as {
-						admonitionType: AdmonitionType;
-						title: string;
-						tokens: Token[];
-					};
+          return {
+            type: "admonition",
+            raw,
+            admonitionType: type,
+            title,
+            tokens: contentTokens,
+          };
+        },
+        renderer(
+          this: { parser: { parse: (tokens: Token[]) => string } },
+          token: Tokens.Generic,
+        ): string {
+          const { admonitionType, title, tokens } = token as unknown as {
+            admonitionType: AdmonitionType;
+            title: string;
+            tokens: Token[];
+          };
 
-					const titleHtml = title
-						? `<p class="admonition-title">${title}</p>\n`
-						: "";
-					const contentHtml = this.parser.parse(tokens);
+          const titleHtml = title
+            ? `<p class="admonition-title">${title}</p>\n`
+            : "";
+          const contentHtml = this.parser.parse(tokens);
 
-					return `<div class="admonition ${admonitionType}">\n${titleHtml}${contentHtml}</div>\n`;
-				},
-			},
-		],
-	};
+          return `<div class="admonition ${admonitionType}">\n${titleHtml}${contentHtml}</div>\n`;
+        },
+      },
+    ],
+  };
 }
 
 /**

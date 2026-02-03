@@ -11,168 +11,168 @@ import { marked, type Token, type Tokens } from "marked";
 import { cleanForSlug } from "./slugger.js";
 
 export interface TOCOptions {
-	/** Skip the first h1 heading in the TOC (usually the document title). Default: false */
-	skip_first_h1?: boolean;
-	/** Maximum heading depth to include (1-6). Default: 6 */
-	maxdepth?: number;
+  /** Skip the first h1 heading in the TOC (usually the document title). Default: false */
+  skip_first_h1?: boolean;
+  /** Maximum heading depth to include (1-6). Default: 6 */
+  maxdepth?: number;
 }
 
 export interface HeadingToken {
-	content: string;
-	slug: string;
-	lvl: number;
-	i: number;
-	seen: number;
+  content: string;
+  slug: string;
+  lvl: number;
+  i: number;
+  seen: number;
 }
 
 interface TOCResult {
-	content: string;
-	json: HeadingToken[];
-	highest: number;
+  content: string;
+  json: HeadingToken[];
+  highest: number;
 }
 
 /**
  * Adapter to work with marked tokens and provide TOC generation.
  */
 class MarkedAdapter {
-	private options: TOCOptions;
-	private slugger = new GithubSlugger();
-	private headings: HeadingToken[] = [];
+  private options: TOCOptions;
+  private slugger = new GithubSlugger();
+  private headings: HeadingToken[] = [];
 
-	constructor(options: TOCOptions = {}) {
-		this.options = {
-			skip_first_h1: false,
-			maxdepth: 6,
-			...options,
-		};
-	}
+  constructor(options: TOCOptions = {}) {
+    this.options = {
+      skip_first_h1: false,
+      maxdepth: 6,
+      ...options,
+    };
+  }
 
-	public parse(content: string): TOCResult {
-		const tokens = marked.lexer(content);
-		this.extractHeadings(tokens);
-		this.processHeadings();
-		const tocContent = this.generateTOCContent();
-		const jsonOutput = this.generateJSONOutput();
+  public parse(content: string): TOCResult {
+    const tokens = marked.lexer(content);
+    this.extractHeadings(tokens);
+    this.processHeadings();
+    const tocContent = this.generateTOCContent();
+    const jsonOutput = this.generateJSONOutput();
 
-		return {
-			content: tocContent,
-			json: jsonOutput,
-			highest: this.getHighestLevel(),
-		};
-	}
+    return {
+      content: tocContent,
+      json: jsonOutput,
+      highest: this.getHighestLevel(),
+    };
+  }
 
-	private extractHeadings(tokens: Token[]): void {
-		for (const token of tokens) {
-			if (token.type === "heading") {
-				this.processHeadingToken(token);
-			}
-		}
-	}
+  private extractHeadings(tokens: Token[]): void {
+    for (const token of tokens) {
+      if (token.type === "heading") {
+        this.processHeadingToken(token);
+      }
+    }
+  }
 
-	private processHeadingToken(token: Token): void {
-		if (token.type !== "heading") {
-			return;
-		}
+  private processHeadingToken(token: Token): void {
+    if (token.type !== "heading") {
+      return;
+    }
 
-		const headingToken = token as Tokens.Heading;
-		const headingDepth = headingToken.depth;
+    const headingToken = token as Tokens.Heading;
+    const headingDepth = headingToken.depth;
 
-		// Skip headings beyond maxdepth
-		if (headingDepth > (this.options.maxdepth ?? 6)) {
-			return;
-		}
+    // Skip headings beyond maxdepth
+    if (headingDepth > (this.options.maxdepth ?? 6)) {
+      return;
+    }
 
-		const text = this.getTokenText(token);
-		// Use same slug logic as gfmHeadingId to ensure links match
-		const slug = this.slugger.slug(cleanForSlug(headingToken.text));
+    const text = this.getTokenText(token);
+    // Use same slug logic as gfmHeadingId to ensure links match
+    const slug = this.slugger.slug(cleanForSlug(headingToken.text));
 
-		const heading: HeadingToken = {
-			content: text,
-			slug,
-			lvl: headingDepth,
-			i: this.headings.length,
-			seen: 0,
-		};
+    const heading: HeadingToken = {
+      content: text,
+      slug,
+      lvl: headingDepth,
+      i: this.headings.length,
+      seen: 0,
+    };
 
-		this.headings.push(heading);
-	}
+    this.headings.push(heading);
+  }
 
-	private getTokenText(token: Token): string {
-		if (token.type === "heading") {
-			return (token as Tokens.Heading).text;
-		}
-		if (token.type === "text") {
-			return (token as Tokens.Text).text;
-		}
-		if (token.type === "link") {
-			const linkToken = token as Tokens.Link;
-			return linkToken.text || linkToken.href;
-		}
-		if (
-			token.type === "strong" ||
-			token.type === "em" ||
-			token.type === "codespan"
-		) {
-			return (token as Tokens.Strong | Tokens.Em | Tokens.Codespan).text;
-		}
-		if ("text" in token && typeof token.text === "string") {
-			return token.text;
-		}
-		if ("tokens" in token && Array.isArray(token.tokens)) {
-			return token.tokens.map((t) => this.getTokenText(t)).join("");
-		}
-		return "";
-	}
+  private getTokenText(token: Token): string {
+    if (token.type === "heading") {
+      return (token as Tokens.Heading).text;
+    }
+    if (token.type === "text") {
+      return (token as Tokens.Text).text;
+    }
+    if (token.type === "link") {
+      const linkToken = token as Tokens.Link;
+      return linkToken.text || linkToken.href;
+    }
+    if (
+      token.type === "strong" ||
+      token.type === "em" ||
+      token.type === "codespan"
+    ) {
+      return (token as Tokens.Strong | Tokens.Em | Tokens.Codespan).text;
+    }
+    if ("text" in token && typeof token.text === "string") {
+      return token.text;
+    }
+    if ("tokens" in token && Array.isArray(token.tokens)) {
+      return token.tokens.map((t) => this.getTokenText(t)).join("");
+    }
+    return "";
+  }
 
-	private processHeadings(): void {
-		// Skip first h1 if enabled (usually the document title)
-		const firstHeading = this.headings[0];
-		if (this.options.skip_first_h1 && firstHeading && firstHeading.lvl === 1) {
-			this.headings = this.headings.slice(1);
-		}
-	}
+  private processHeadings(): void {
+    // Skip first h1 if enabled (usually the document title)
+    const firstHeading = this.headings[0];
+    if (this.options.skip_first_h1 && firstHeading && firstHeading.lvl === 1) {
+      this.headings = this.headings.slice(1);
+    }
+  }
 
-	private generateTOCContent(): string {
-		const lines: string[] = [];
-		const maxdepth = this.options.maxdepth ?? 6;
-		const highestLevel = this.getHighestLevel();
+  private generateTOCContent(): string {
+    const lines: string[] = [];
+    const maxdepth = this.options.maxdepth ?? 6;
+    const highestLevel = this.getHighestLevel();
 
-		for (const heading of this.headings) {
-			if (heading.lvl > maxdepth) {
-				continue;
-			}
+    for (const heading of this.headings) {
+      if (heading.lvl > maxdepth) {
+        continue;
+      }
 
-			const indentLevel = Math.max(0, heading.lvl - highestLevel);
-			const indentation = "  ".repeat(indentLevel);
+      const indentLevel = Math.max(0, heading.lvl - highestLevel);
+      const indentation = "  ".repeat(indentLevel);
 
-			lines.push(`${indentation}- [${heading.content}](#${heading.slug})`);
-		}
+      lines.push(`${indentation}- [${heading.content}](#${heading.slug})`);
+    }
 
-		return lines.join("\n");
-	}
+    return lines.join("\n");
+  }
 
-	private generateJSONOutput(): HeadingToken[] {
-		return this.headings.map((heading) => ({
-			content: heading.content,
-			slug: heading.slug,
-			lvl: heading.lvl,
-			i: heading.i,
-			seen: heading.seen,
-		}));
-	}
+  private generateJSONOutput(): HeadingToken[] {
+    return this.headings.map((heading) => ({
+      content: heading.content,
+      slug: heading.slug,
+      lvl: heading.lvl,
+      i: heading.i,
+      seen: heading.seen,
+    }));
+  }
 
-	private getHighestLevel(): number {
-		if (this.headings.length === 0) return 1;
-		return Math.min(...this.headings.map((h) => h.lvl));
-	}
+  private getHighestLevel(): number {
+    if (this.headings.length === 0) return 1;
+    return Math.min(...this.headings.map((h) => h.lvl));
+  }
 }
 
 /**
  * Generate a table of contents from markdown content.
  */
 function toc(str: string, options: TOCOptions = {}): TOCResult {
-	const adapter = new MarkedAdapter(options);
-	return adapter.parse(str);
+  const adapter = new MarkedAdapter(options);
+  return adapter.parse(str);
 }
 
 /**
@@ -184,35 +184,35 @@ function toc(str: string, options: TOCOptions = {}): TOCResult {
  * @returns Markdown with TOC inserted (or original if no markers)
  */
 export function insertToc(str: string, options: TOCOptions = {}): string {
-	const regex = /(?:<!-- toc(?:\s*stop)? -->)/g;
-	const open = "<!-- toc -->\n\n";
-	const close = "\n<!-- tocstop -->";
+  const regex = /(?:<!-- toc(?:\s*stop)? -->)/g;
+  const open = "<!-- toc -->\n\n";
+  const close = "\n<!-- tocstop -->";
 
-	// Preserve trailing newlines
-	const newlines = (/\n+$/.exec(str) || [""])[0];
+  // Preserve trailing newlines
+  const newlines = (/\n+$/.exec(str) || [""])[0];
 
-	const sections = str.split(regex).map((s) => s.trim());
+  const sections = str.split(regex).map((s) => s.trim());
 
-	if (sections.length === 1) {
-		// No markers found, return unchanged
-		return str;
-	}
+  if (sections.length === 1) {
+    // No markers found, return unchanged
+    return str;
+  }
 
-	if (sections.length > 3) {
-		throw new Error("mdforge only supports one Table of Contents per file.");
-	}
+  if (sections.length > 3) {
+    throw new Error("mdforge only supports one Table of Contents per file.");
+  }
 
-	const last = sections[sections.length - 1] as string;
-	const tocContent = toc(last, options).content;
+  const last = sections[sections.length - 1] as string;
+  const tocContent = toc(last, options).content;
 
-	if (sections.length === 3) {
-		// Both markers present: <!-- toc --> content <!-- tocstop -->
-		sections.splice(1, 1, open + tocContent);
-		sections.splice(2, 0, close);
-	} else if (sections.length === 2) {
-		// Only opening marker: <!-- toc -->
-		sections.splice(1, 0, `${open}${tocContent}${close}`);
-	}
+  if (sections.length === 3) {
+    // Both markers present: <!-- toc --> content <!-- tocstop -->
+    sections.splice(1, 1, open + tocContent);
+    sections.splice(2, 0, close);
+  } else if (sections.length === 2) {
+    // Only opening marker: <!-- toc -->
+    sections.splice(1, 0, `${open}${tocContent}${close}`);
+  }
 
-	return sections.join("\n\n") + newlines;
+  return sections.join("\n\n") + newlines;
 }

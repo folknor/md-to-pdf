@@ -19,5 +19,5 @@ const fontNames = APIDirect.map((f) => f.family.toLowerCase());
 writeFileSync(outputPath, JSON.stringify(fontNames), "utf-8");
 
 console.log(
-	`Generated ${outputPath} with ${fontNames.length} fonts (${(JSON.stringify(fontNames).length / 1024).toFixed(1)}KB)`,
+  `Generated ${outputPath} with ${fontNames.length} fonts (${(JSON.stringify(fontNames).length / 1024).toFixed(1)}KB)`,
 );

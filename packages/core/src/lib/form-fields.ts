@@ -9,11 +9,11 @@ type FieldType = "text" | "select" | "checklist" | "radiolist" | "textarea";
  * Options for form fields extension.
  */
 export interface FormFieldsOptions {
-	/**
-	 * If true, add data attributes for AcroForm field extraction.
-	 * Used by fillable PDF generation to locate fields for post-processing.
-	 */
-	fillable?: boolean;
+  /**
+   * If true, add data attributes for AcroForm field extraction.
+   * Used by fillable PDF generation to locate fields for post-processing.
+   */
+  fillable?: boolean;
 }
 
 /**
@@ -34,256 +34,256 @@ export interface FormFieldsOptions {
  * @see https://github.com/jldec/marked-forms
  */
 export function formFields(options: FormFieldsOptions = {}): MarkedExtension {
-	const { fillable = false } = options;
-	// Track pending list consumers (select, checklist, radiolist)
-	let pendingListConsumer: {
-		type: FieldType;
-		name: string;
-		label: string;
-	} | null = null;
+  const { fillable = false } = options;
+  // Track pending list consumers (select, checklist, radiolist)
+  let pendingListConsumer: {
+    type: FieldType;
+    name: string;
+    label: string;
+  } | null = null;
 
-	return {
-		extensions: [
-			// Block-level: select, checklist, radiolist declarations
-			{
-				name: "formFieldBlock",
-				level: "block",
-				start(src: string): number | undefined {
-					const match = src.match(
-						/^\[\?(?:select|checklist|radiolist)\?\s*([^\]]*)\]\(([^)]*)\)/m,
-					);
-					return match?.index;
-				},
-				tokenizer(src: string): Tokens.Generic | undefined {
-					const match =
-						/^\[(\?(?:select|checklist|radiolist)\?)\s*([^\]]*)\]\(([^)]*)\)\n?/.exec(
-							src,
-						);
-					if (match) {
-						const typeStr = match[1] ?? "";
-						const label = match[2]?.trim() ?? "";
-						const name = match[3]?.trim() ?? "";
+  return {
+    extensions: [
+      // Block-level: select, checklist, radiolist declarations
+      {
+        name: "formFieldBlock",
+        level: "block",
+        start(src: string): number | undefined {
+          const match = src.match(
+            /^\[\?(?:select|checklist|radiolist)\?\s*([^\]]*)\]\(([^)]*)\)/m,
+          );
+          return match?.index;
+        },
+        tokenizer(src: string): Tokens.Generic | undefined {
+          const match =
+            /^\[(\?(?:select|checklist|radiolist)\?)\s*([^\]]*)\]\(([^)]*)\)\n?/.exec(
+              src,
+            );
+          if (match) {
+            const typeStr = match[1] ?? "";
+            const label = match[2]?.trim() ?? "";
+            const name = match[3]?.trim() ?? "";
 
-						let type: FieldType = "select";
-						if (typeStr.includes("checklist")) type = "checklist";
-						else if (typeStr.includes("radiolist")) type = "radiolist";
+            let type: FieldType = "select";
+            if (typeStr.includes("checklist")) type = "checklist";
+            else if (typeStr.includes("radiolist")) type = "radiolist";
 
-						pendingListConsumer = {
-							type,
-							name,
-							label,
-						};
+            pendingListConsumer = {
+              type,
+              name,
+              label,
+            };
 
-						return {
-							type: "formFieldBlock",
-							raw: match[0],
-							fieldType: type,
-							name,
-							label,
-						};
-					}
-					return;
-				},
-				renderer(): string {
-					// Actual rendering happens when we see the list
-					return "";
-				},
-			},
+            return {
+              type: "formFieldBlock",
+              raw: match[0],
+              fieldType: type,
+              name,
+              label,
+            };
+          }
+          return;
+        },
+        renderer(): string {
+          // Actual rendering happens when we see the list
+          return "";
+        },
+      },
 
-			// Intercept lists that follow form field declarations
-			{
-				name: "formFieldList",
-				level: "block",
-				start(src: string): number | undefined {
-					if (!pendingListConsumer) return;
-					// Check if this starts with a list
-					const match = src.match(/^(\s*[-*+]|\s*\d+\.)\s/m);
-					return match?.index;
-				},
-				tokenizer(src: string): Tokens.Generic | undefined {
-					if (!pendingListConsumer) return;
+      // Intercept lists that follow form field declarations
+      {
+        name: "formFieldList",
+        level: "block",
+        start(src: string): number | undefined {
+          if (!pendingListConsumer) return;
+          // Check if this starts with a list
+          const match = src.match(/^(\s*[-*+]|\s*\d+\.)\s/m);
+          return match?.index;
+        },
+        tokenizer(src: string): Tokens.Generic | undefined {
+          if (!pendingListConsumer) return;
 
-					// Match the list using marked's default list pattern
-					const listMatch = src.match(
-						/^(([ \t]*[-*+][ \t]+.+(?:\n|$))+|([ \t]*\d+\.[ \t]+.+(?:\n|$))+)/,
-					);
-					if (!listMatch) return;
+          // Match the list using marked's default list pattern
+          const listMatch = src.match(
+            /^(([ \t]*[-*+][ \t]+.+(?:\n|$))+|([ \t]*\d+\.[ \t]+.+(?:\n|$))+)/,
+          );
+          if (!listMatch) return;
 
-					const consumer = pendingListConsumer;
-					pendingListConsumer = null;
+          const consumer = pendingListConsumer;
+          pendingListConsumer = null;
 
-					// Parse list items manually
-					const listRaw = listMatch[0];
-					const itemMatches = listRaw.matchAll(
-						/^[ \t]*[-*+\d.]+[ \t]+(.+?)(?:\n|$)/gm,
-					);
-					const options: Array<{ text: string; value: string }> = [];
+          // Parse list items manually
+          const listRaw = listMatch[0];
+          const itemMatches = listRaw.matchAll(
+            /^[ \t]*[-*+\d.]+[ \t]+(.+?)(?:\n|$)/gm,
+          );
+          const options: Array<{ text: string; value: string }> = [];
 
-					for (const m of itemMatches) {
-						const text = m[1]?.trim() ?? "";
-						// Check for quoted value
-						const valueMatch = text.match(/^(.+?)\s+"([^"]+)"$/);
-						if (valueMatch?.[1] && valueMatch[2]) {
-							options.push({
-								text: valueMatch[1].trim(),
-								value: valueMatch[2],
-							});
-						} else {
-							options.push({ text, value: text });
-						}
-					}
+          for (const m of itemMatches) {
+            const text = m[1]?.trim() ?? "";
+            // Check for quoted value
+            const valueMatch = text.match(/^(.+?)\s+"([^"]+)"$/);
+            if (valueMatch?.[1] && valueMatch[2]) {
+              options.push({
+                text: valueMatch[1].trim(),
+                value: valueMatch[2],
+              });
+            } else {
+              options.push({ text, value: text });
+            }
+          }
 
-					return {
-						type: "formFieldList",
-						raw: listRaw,
-						fieldType: consumer.type,
-						name: consumer.name,
-						label: consumer.label,
-						options,
-					};
-				},
-				renderer(token: Tokens.Generic): string {
-					const { fieldType, name, label, options } = token as unknown as {
-						fieldType: FieldType;
-						name: string;
-						label: string;
-						options: Array<{ text: string; value: string }>;
-					};
+          return {
+            type: "formFieldList",
+            raw: listRaw,
+            fieldType: consumer.type,
+            name: consumer.name,
+            label: consumer.label,
+            options,
+          };
+        },
+        renderer(token: Tokens.Generic): string {
+          const { fieldType, name, label, options } = token as unknown as {
+            fieldType: FieldType;
+            name: string;
+            label: string;
+            options: Array<{ text: string; value: string }>;
+          };
 
-					if (fieldType === "select") {
-						if (fillable) {
-							// Fillable mode: render as actual select (AcroForm dropdown will work)
-							const optionsHtml = options
-								.map((o) => `<option value="${o.value}">${o.text}</option>`)
-								.join("\n");
-							const dataAttrs = `data-form-field data-field-name="${name}" data-field-type="select"`;
-							const selectHtml = `<select name="${name}">\n${optionsHtml}\n</select>`;
-							const wrappedSelect = wrapWithMarker(selectHtml, name, "select");
-							return `<label class="form-field form-select" ${dataAttrs}>
+          if (fieldType === "select") {
+            if (fillable) {
+              // Fillable mode: render as actual select (AcroForm dropdown will work)
+              const optionsHtml = options
+                .map((o) => `<option value="${o.value}">${o.text}</option>`)
+                .join("\n");
+              const dataAttrs = `data-form-field data-field-name="${name}" data-field-type="select"`;
+              const selectHtml = `<select name="${name}">\n${optionsHtml}\n</select>`;
+              const wrappedSelect = wrapWithMarker(selectHtml, name, "select");
+              return `<label class="form-field form-select" ${dataAttrs}>
 ${label ? `<span class="form-label">${label}</span>` : ""}
 ${wrappedSelect}
 </label>\n`;
-						}
-						// Default mode: render as radio buttons (static dropdowns are useless)
-						const itemsHtml = options
-							.map(
-								(o) => `<label class="form-option">
+            }
+            // Default mode: render as radio buttons (static dropdowns are useless)
+            const itemsHtml = options
+              .map(
+                (o) => `<label class="form-option">
 <input type="radio" name="${name}" value="${o.value}">
 <span>${o.text}</span>
 </label>`,
-							)
-							.join("\n");
-						return `<fieldset class="form-field form-radiolist form-select-as-radio">
+              )
+              .join("\n");
+            return `<fieldset class="form-field form-radiolist form-select-as-radio">
 ${label ? `<legend class="form-label">${label}</legend>` : ""}
 <div class="form-options">
 ${itemsHtml}
 </div>
 </fieldset>\n`;
-					}
+          }
 
-					if (fieldType === "checklist" || fieldType === "radiolist") {
-						const inputType = fieldType === "checklist" ? "checkbox" : "radio";
-						const itemsHtml = options
-							.map((o) => {
-								const optionDataAttrs = fillable
-									? `data-form-field data-field-name="${name}" data-field-type="${inputType}" data-field-value="${o.value}"`
-									: "";
-								const inputHtml = `<input type="${inputType}" name="${name}" value="${o.value}">`;
-								const wrappedInput = fillable
-									? wrapWithMarker(inputHtml, name, inputType, o.value)
-									: inputHtml;
-								return `<label class="form-option" ${optionDataAttrs}>
+          if (fieldType === "checklist" || fieldType === "radiolist") {
+            const inputType = fieldType === "checklist" ? "checkbox" : "radio";
+            const itemsHtml = options
+              .map((o) => {
+                const optionDataAttrs = fillable
+                  ? `data-form-field data-field-name="${name}" data-field-type="${inputType}" data-field-value="${o.value}"`
+                  : "";
+                const inputHtml = `<input type="${inputType}" name="${name}" value="${o.value}">`;
+                const wrappedInput = fillable
+                  ? wrapWithMarker(inputHtml, name, inputType, o.value)
+                  : inputHtml;
+                return `<label class="form-option" ${optionDataAttrs}>
 ${wrappedInput}
 <span>${o.text}</span>
 </label>`;
-							})
-							.join("\n");
+              })
+              .join("\n");
 
-						return `<fieldset class="form-field form-${fieldType}">
+            return `<fieldset class="form-field form-${fieldType}">
 ${label ? `<legend class="form-label">${label}</legend>` : ""}
 <div class="form-options">
 ${itemsHtml}
 </div>
 </fieldset>\n`;
-					}
+          }
 
-					return "";
-				},
-			},
+          return "";
+        },
+      },
 
-			// Inline: text input and textarea
-			{
-				name: "formFieldInline",
-				level: "inline",
-				start(src: string): number | undefined {
-					return src.indexOf("[");
-				},
-				tokenizer(src: string): Tokens.Generic | undefined {
-					// Text input: [Label ??](name) or [??](name)
-					// Textarea: [Label ???](name) or [Label ???6](name) for 6 lines
-					const match = /^\[([^\]]*?)(\?{2,3})(\d*)\]\(([^)]*)\)/.exec(src);
-					if (match) {
-						const label = match[1]?.trim() ?? "";
-						const questionMarks = match[2] ?? "??";
-						const lineCount = match[3]
-							? Number.parseInt(match[3], 10)
-							: undefined;
-						const name =
-							match[4]?.trim() ?? label.toLowerCase().replace(/\s+/g, "_");
+      // Inline: text input and textarea
+      {
+        name: "formFieldInline",
+        level: "inline",
+        start(src: string): number | undefined {
+          return src.indexOf("[");
+        },
+        tokenizer(src: string): Tokens.Generic | undefined {
+          // Text input: [Label ??](name) or [??](name)
+          // Textarea: [Label ???](name) or [Label ???6](name) for 6 lines
+          const match = /^\[([^\]]*?)(\?{2,3})(\d*)\]\(([^)]*)\)/.exec(src);
+          if (match) {
+            const label = match[1]?.trim() ?? "";
+            const questionMarks = match[2] ?? "??";
+            const lineCount = match[3]
+              ? Number.parseInt(match[3], 10)
+              : undefined;
+            const name =
+              match[4]?.trim() ?? label.toLowerCase().replace(/\s+/g, "_");
 
-						const isTextarea = questionMarks === "???";
+            const isTextarea = questionMarks === "???";
 
-						return {
-							type: "formFieldInline",
-							raw: match[0],
-							fieldType: isTextarea ? "textarea" : "text",
-							name,
-							label,
-							lineCount,
-						};
-					}
-					return;
-				},
-				renderer(token: Tokens.Generic): string {
-					const { fieldType, name, label, lineCount } = token as unknown as {
-						fieldType: FieldType;
-						name: string;
-						label: string;
-						lineCount?: number;
-					};
+            return {
+              type: "formFieldInline",
+              raw: match[0],
+              fieldType: isTextarea ? "textarea" : "text",
+              name,
+              label,
+              lineCount,
+            };
+          }
+          return;
+        },
+        renderer(token: Tokens.Generic): string {
+          const { fieldType, name, label, lineCount } = token as unknown as {
+            fieldType: FieldType;
+            name: string;
+            label: string;
+            lineCount?: number;
+          };
 
-					const dataAttrs = fillable
-						? `data-form-field data-field-name="${name}" data-field-type="${fieldType}"`
-						: "";
+          const dataAttrs = fillable
+            ? `data-form-field data-field-name="${name}" data-field-type="${fieldType}"`
+            : "";
 
-					if (fieldType === "textarea") {
-						// Calculate height: default 4 lines, or use lineCount if specified
-						// Each line is approximately 1.5em (line-height) + padding
-						const lines = lineCount ?? 4;
-						const heightStyle = `style="height: ${lines * 1.5}em"`;
-						const textareaHtml = `<textarea name="${name}" ${heightStyle}></textarea>`;
-						const wrappedTextarea = fillable
-							? wrapWithMarker(textareaHtml, name, "textarea")
-							: textareaHtml;
-						return `<label class="form-field form-textarea" ${dataAttrs}>
+          if (fieldType === "textarea") {
+            // Calculate height: default 4 lines, or use lineCount if specified
+            // Each line is approximately 1.5em (line-height) + padding
+            const lines = lineCount ?? 4;
+            const heightStyle = `style="height: ${lines * 1.5}em"`;
+            const textareaHtml = `<textarea name="${name}" ${heightStyle}></textarea>`;
+            const wrappedTextarea = fillable
+              ? wrapWithMarker(textareaHtml, name, "textarea")
+              : textareaHtml;
+            return `<label class="form-field form-textarea" ${dataAttrs}>
 ${label ? `<span class="form-label">${label}</span>` : ""}
 ${wrappedTextarea}
 </label>`;
-					}
+          }
 
-					// Text input
-					const inputHtml = `<input type="text" name="${name}">`;
-					const wrappedInput = fillable
-						? wrapWithMarker(inputHtml, name, "text")
-						: inputHtml;
-					return `<label class="form-field form-text" ${dataAttrs}>
+          // Text input
+          const inputHtml = `<input type="text" name="${name}">`;
+          const wrappedInput = fillable
+            ? wrapWithMarker(inputHtml, name, "text")
+            : inputHtml;
+          return `<label class="form-field form-text" ${dataAttrs}>
 ${label ? `<span class="form-label">${label}</span>` : ""}
 ${wrappedInput}
 </label>`;
-				},
-			},
-		],
-	};
+        },
+      },
+    ],
+  };
 }
 
 /**
@@ -298,15 +298,15 @@ export const MARKER_URL_PREFIX = "https://mdforge.marker/";
  * as a PDF link annotation rectangle.
  */
 function wrapWithMarker(
-	inputHtml: string,
-	name: string,
-	type: string,
-	value?: string,
+  inputHtml: string,
+  name: string,
+  type: string,
+  value?: string,
 ): string {
-	const params = new URLSearchParams({ type });
-	if (value) params.set("value", value);
-	const markerUrl = `${MARKER_URL_PREFIX}${encodeURIComponent(name)}?${params}`;
-	return `<span class="form-input-wrapper">
+  const params = new URLSearchParams({ type });
+  if (value) params.set("value", value);
+  const markerUrl = `${MARKER_URL_PREFIX}${encodeURIComponent(name)}?${params}`;
+  return `<span class="form-input-wrapper">
 <a href="${markerUrl}" class="form-marker"></a>
 ${inputHtml}
 </span>`;

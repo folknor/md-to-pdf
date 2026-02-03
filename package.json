@@ -1,34 +1,34 @@
 {
-	"name": "mdforge-workspace",
-	"private": true,
-	"description": "Convert Markdown to beautifully styled PDFs.",
-	"type": "module",
-	"engines": {
-		"node": ">=24.0",
-		"pnpm": ">=10.0"
-	},
-	"scripts": {
-		"dev": "pnpm -r run dev",
-		"build": "pnpm -r run build",
-		"clean": "pnpm -r run clean",
-		"lint": "pnpm exec biome check --write --max-diagnostics=none --reporter=github --formatter-enabled=true --linter-enabled=true --assist-enabled=true",
-		"check": "pnpm exec biome check --write --max-diagnostics=none --reporter=github --formatter-enabled=true --linter-enabled=true --assist-enabled=true",
-		"regenerate-examples": "node scripts/regenerate-examples.js"
-	},
-	"author": {
-		"name": "folknor",
-		"url": "https://github.com/folknor"
-	},
-	"contributors": [
-		{
-			"name": "Simon Haenisch",
-			"url": "https://github.com/simonhaenisch"
-		}
-	],
-	"license": "MIT",
-	"repository": "folknor/mdforge",
-	"homepage": "https://github.com/folknor/mdforge",
-	"devDependencies": {
-		"@biomejs/biome": "^2.3.13"
-	}
+  "name": "mdforge-workspace",
+  "private": true,
+  "description": "Convert Markdown to beautifully styled PDFs.",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0",
+    "pnpm": ">=10.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r run dev",
+    "build": "pnpm -r run build",
+    "clean": "pnpm -r run clean",
+    "lint": "pnpm exec biome check --write --max-diagnostics=none --reporter=github --formatter-enabled=true --linter-enabled=true --assist-enabled=true",
+    "check": "pnpm exec biome check --write --max-diagnostics=none --reporter=github --formatter-enabled=true --linter-enabled=true --assist-enabled=true",
+    "regenerate-examples": "node scripts/regenerate-examples.js"
+  },
+  "author": {
+    "name": "folknor",
+    "url": "https://github.com/folknor"
+  },
+  "contributors": [
+    {
+      "name": "Simon Haenisch",
+      "url": "https://github.com/simonhaenisch"
+    }
+  ],
+  "license": "MIT",
+  "repository": "folknor/mdforge",
+  "homepage": "https://github.com/folknor/mdforge",
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.13"
+  }
 }
