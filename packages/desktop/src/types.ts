@@ -8,10 +8,23 @@ export interface ConversionConfig {
   outputPath?: string;
 }
 
+export interface PreviewConfig {
+  theme?: Theme;
+  fontPairing?: string;
+  author?: string;
+}
+
 export interface ConversionResult {
   success: boolean;
   inputPath: string;
   outputPath: string;
+  error?: string;
+}
+
+export interface PreviewResult {
+  success: boolean;
+  filePath: string;
+  pdfData?: Uint8Array;
   error?: string;
 }
 
@@ -27,6 +40,14 @@ export interface ElectronAPI {
     config: ConversionConfig,
   ) => Promise<ConversionResult[]>;
 
+  // Preview
+  generatePreview: (
+    filePath: string,
+    config: PreviewConfig,
+  ) => Promise<PreviewResult>;
+  watchFile: (filePath: string) => Promise<void>;
+  unwatchFile: (filePath: string) => Promise<void>;
+
   // File dialogs
   selectFiles: () => Promise<string[]>;
   selectOutputDir: () => Promise<string | null>;
@@ -35,4 +56,5 @@ export interface ElectronAPI {
   onConversionProgress: (
     callback: (progress: ConversionProgress) => void,
   ) => () => void;
+  onFileChanged: (callback: (filePath: string) => void) => () => void;
 }

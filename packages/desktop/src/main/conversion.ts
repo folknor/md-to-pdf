@@ -3,13 +3,27 @@ import {
   convertMdToPdf,
   defaultConfig,
 } from "@mdforge/renderer-electron";
-import type { ConversionConfig, ConversionResult } from "../types";
+import type {
+  ConversionConfig,
+  ConversionResult,
+  PreviewConfig,
+  PreviewResult,
+} from "../types";
+
+// Simple logger - enable with MDFORGE_DEBUG=1
+const DEBUG = process.env.MDFORGE_DEBUG === "1";
+function log(...args: unknown[]): void {
+  if (DEBUG) {
+    console.log("[desktop:conversion]", ...args);
+  }
+}
 
 export async function convertFile(
   filePath: string,
   config: ConversionConfig,
   onProgress?: (progress: number) => void,
 ): Promise<ConversionResult> {
+  log("convertFile called:", filePath);
   const outputPath = config.outputPath ?? "";
   try {
     const mergedConfig: Partial<Config> = {
@@ -29,12 +43,15 @@ export async function convertFile(
       mergedConfig.metadata = { author: config.author };
     }
 
+    log("Starting conversion with config:", JSON.stringify(mergedConfig));
     onProgress?.(50);
 
+    log("Calling convertMdToPdf...");
     const result = await convertMdToPdf(
       { path: filePath },
       mergedConfig as Config,
     );
+    log("convertMdToPdf returned successfully");
 
     onProgress?.(100);
 
@@ -45,6 +62,7 @@ export async function convertFile(
     };
   } catch (error) {
     const err = error as Error;
+    log("Conversion error:", err.message, err.stack);
     return {
       success: false,
       inputPath: filePath,
@@ -80,4 +98,57 @@ function getOutputPath(inputPath: string, outputDir: string): string {
   const basename = inputPath.replace(/\.[^.]+$/, "");
   const filename = basename.split(/[/\\]/).pop() ?? "output";
   return `${outputDir}/${filename}.pdf`;
+}
+
+export async function generatePreview(
+  filePath: string,
+  config: PreviewConfig,
+): Promise<PreviewResult> {
+  log("generatePreview called:", filePath);
+  try {
+    const mergedConfig: Partial<Config> = {
+      ...defaultConfig,
+      // Don't write to file - we just want the buffer
+      dest: undefined,
+    };
+
+    if (config.theme) {
+      mergedConfig.theme = config.theme;
+    }
+
+    if (config.fontPairing) {
+      mergedConfig.fonts = config.fontPairing;
+    }
+
+    if (config.author) {
+      mergedConfig.metadata = { author: config.author };
+    }
+
+    log("Generating preview with config:", JSON.stringify(mergedConfig));
+    const result = await convertMdToPdf(
+      { path: filePath },
+      mergedConfig as Config,
+    );
+    log("Preview generated, size:", result.content.length);
+
+    // Convert Buffer to Uint8Array for IPC transfer
+    const pdfData =
+      result.content instanceof Uint8Array
+        ? result.content
+        : new Uint8Array(result.content as Buffer);
+
+    return {
+      success: true,
+      filePath,
+      pdfData,
+    };
+  } catch (error) {
+    const err = error as Error;
+    log("Preview error:", err.message, err.stack);
+    return {
+      success: false,
+      filePath,
+      error: err.message,
+    };
+  }
 }

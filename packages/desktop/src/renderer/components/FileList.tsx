@@ -10,12 +10,16 @@ interface FileItem {
 
 interface FileListProps {
   files: FileItem[];
+  selectedPath: string | null;
+  onSelect: (path: string) => void;
   onRemove: (path: string) => void;
   onClear: () => void;
 }
 
 export default function FileList({
   files,
+  selectedPath,
+  onSelect,
   onRemove,
   onClear,
 }: FileListProps): React.ReactElement {
@@ -35,50 +39,75 @@ export default function FileList({
       </div>
 
       <ul className="divide-y">
-        {files.map((file) => (
-          <li key={file.path} className="p-3 flex items-center gap-3">
-            <StatusIcon status={file.status} />
-
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 truncate">
-                {file.name}
-              </p>
-              {file.status === "converting" && (
-                <div className="mt-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 transition-all"
-                    style={{ width: `${file.progress}%` }}
-                  />
-                </div>
-              )}
-              {file.error ? (
-                <p className="text-xs text-red-600 mt-1">{file.error}</p>
-              ) : null}
-            </div>
-
-            <button
-              type="button"
-              onClick={(): void => onRemove(file.path)}
-              aria-label="Remove file"
-              className="text-gray-400 hover:text-red-600 transition-colors"
+        {files.map((file) => {
+          const isSelected = file.path === selectedPath;
+          return (
+            <li
+              key={file.path}
+              className={`p-3 flex items-center gap-3 cursor-pointer transition-colors ${
+                isSelected
+                  ? "bg-blue-50 border-l-4 border-l-blue-500"
+                  : "hover:bg-gray-50 border-l-4 border-l-transparent"
+              }`}
+              onClick={(): void => onSelect(file.path)}
+              onKeyDown={(e): void => {
+                if (e.key === "Enter" || e.key === " ") {
+                  onSelect(file.path);
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
-              <svg
-                aria-hidden="true"
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <StatusIcon status={file.status} />
+
+              <div className="flex-1 min-w-0">
+                <p
+                  className={`text-sm font-medium truncate ${
+                    isSelected ? "text-blue-800" : "text-gray-800"
+                  }`}
+                >
+                  {file.name}
+                </p>
+                {file.status === "converting" && (
+                  <div className="mt-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500 transition-all"
+                      style={{ width: `${file.progress}%` }}
+                    />
+                  </div>
+                )}
+                {file.error ? (
+                  <p className="text-xs text-red-600 mt-1">{file.error}</p>
+                ) : null}
+              </div>
+
+              <button
+                type="button"
+                onClick={(e): void => {
+                  e.stopPropagation();
+                  onRemove(file.path);
+                }}
+                aria-label="Remove file"
+                className="text-gray-400 hover:text-red-600 transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </li>
-        ))}
+                <svg
+                  aria-hidden="true"
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

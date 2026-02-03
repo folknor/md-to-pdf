@@ -1,14 +1,16 @@
 import type { Theme } from "@mdforge/renderer-electron/browser";
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ConversionConfig,
   ConversionProgress,
   ConversionResult,
+  PreviewConfig,
 } from "../types";
 import ConfigPanel from "./components/ConfigPanel";
 import DropZone from "./components/DropZone";
 import FileList from "./components/FileList";
+import PdfPreview from "./components/PdfPreview";
 
 declare global {
   interface Window {
@@ -26,11 +28,21 @@ interface FileItem {
 
 export default function App(): React.ReactElement {
   const [files, setFiles] = useState<FileItem[]>([]);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [outputDir, setOutputDir] = useState<string>("");
   const [theme, setTheme] = useState<Theme>("beryl");
   const [fontPairing, setFontPairing] = useState("beryl");
   const [author, setAuthor] = useState("");
   const [isConverting, setIsConverting] = useState(false);
+
+  // Preview state
+  const [previewData, setPreviewData] = useState<Uint8Array | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewGeneratedAt, setPreviewGeneratedAt] = useState<Date | null>(
+    null,
+  );
+  const watchedFileRef = useRef<string | null>(null);
 
   // Listen for conversion progress
   useEffect(() => {
@@ -52,6 +64,68 @@ export default function App(): React.ReactElement {
     return unsubscribe;
   }, []);
 
+  // Generate preview for selected file
+  const generatePreview = useCallback(
+    async (filePath: string) => {
+      setPreviewLoading(true);
+      setPreviewError(null);
+
+      const config: PreviewConfig = {
+        theme,
+        fontPairing,
+        author: author || undefined,
+      };
+
+      const result = await window.electron.generatePreview(filePath, config);
+
+      if (result.success && result.pdfData) {
+        setPreviewData(result.pdfData);
+        setPreviewError(null);
+        setPreviewGeneratedAt(new Date());
+      } else {
+        setPreviewError(result.error ?? "Failed to generate preview");
+      }
+
+      setPreviewLoading(false);
+    },
+    [theme, fontPairing, author],
+  );
+
+  // Watch selected file for changes
+  useEffect(() => {
+    if (!selectedFile) return;
+
+    // Start watching the file
+    const watchedFile = selectedFile;
+    window.electron.watchFile(watchedFile);
+    watchedFileRef.current = watchedFile;
+
+    // Listen for file changes
+    const unsubscribe = window.electron.onFileChanged((filePath) => {
+      if (filePath === watchedFile) {
+        generatePreview(watchedFile);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (watchedFileRef.current) {
+        window.electron.unwatchFile(watchedFileRef.current);
+        watchedFileRef.current = null;
+      }
+    };
+  }, [selectedFile, generatePreview]);
+
+  // Generate preview when selected file or config changes
+  useEffect(() => {
+    if (selectedFile) {
+      generatePreview(selectedFile);
+    } else {
+      setPreviewData(null);
+      setPreviewError(null);
+    }
+  }, [selectedFile, generatePreview]);
+
   const handleFilesAdded = useCallback((paths: string[]) => {
     const newFiles: FileItem[] = paths.map((path) => ({
       path,
@@ -62,7 +136,14 @@ export default function App(): React.ReactElement {
     setFiles((prev) => {
       const existingPaths = new Set(prev.map((f) => f.path));
       const unique = newFiles.filter((f) => !existingPaths.has(f.path));
-      return [...prev, ...unique];
+      const updated = [...prev, ...unique];
+
+      // Auto-select first file if nothing is selected
+      if (unique.length > 0) {
+        setSelectedFile((current) => current ?? unique[0].path);
+      }
+
+      return updated;
     });
   }, []);
 
@@ -113,22 +194,40 @@ export default function App(): React.ReactElement {
     setIsConverting(false);
   };
 
+  const handleSelectFile = (path: string): void => {
+    setSelectedFile(path);
+  };
+
   const handleRemoveFile = (path: string): void => {
-    setFiles((prev) => prev.filter((f) => f.path !== path));
+    setFiles((prev) => {
+      const updated = prev.filter((f) => f.path !== path);
+      // If we removed the selected file, select another one
+      if (path === selectedFile) {
+        setSelectedFile(updated.length > 0 ? updated[0].path : null);
+      }
+      return updated;
+    });
   };
 
   const handleClearFiles = (): void => {
     setFiles([]);
+    setSelectedFile(null);
+    setPreviewData(null);
+    setPreviewError(null);
+    setPreviewGeneratedAt(null);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-2xl mx-auto">
+    <div className="h-screen bg-gray-100 flex">
+      {/* Left panel - controls */}
+      <div className="w-80 flex-shrink-0 p-4 overflow-y-auto">
         <DropZone onFilesAdded={handleFilesAdded} />
 
         {files.length > 0 && (
           <FileList
             files={files}
+            selectedPath={selectedFile}
+            onSelect={handleSelectFile}
             onRemove={handleRemoveFile}
             onClear={handleClearFiles}
           />
@@ -143,17 +242,17 @@ export default function App(): React.ReactElement {
           onAuthorChange={setAuthor}
         />
 
-        <div className="mt-6 bg-white rounded-lg shadow p-4">
-          <div className="flex items-center gap-4">
+        <div className="mt-4 bg-white rounded-lg shadow p-4">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleSelectOutputDir}
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition-colors"
+              className="px-3 py-1.5 text-sm bg-gray-200 rounded hover:bg-gray-300 transition-colors"
             >
               Output Folder
             </button>
-            <span className="text-sm text-gray-600 truncate flex-1">
-              {outputDir || "No output folder selected"}
+            <span className="text-xs text-gray-600 truncate flex-1">
+              {outputDir || "Not selected"}
             </span>
           </div>
         </div>
@@ -162,12 +261,27 @@ export default function App(): React.ReactElement {
           type="button"
           onClick={handleConvert}
           disabled={files.length === 0 || !outputDir || isConverting}
-          className="mt-6 w-full py-3 bg-blue-600 text-white rounded-lg font-semibold
+          className="mt-4 w-full py-2.5 bg-blue-600 text-white rounded-lg font-semibold
                      hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed
                      transition-colors"
         >
           {isConverting ? "Converting..." : "Generate PDFs"}
         </button>
+      </div>
+
+      {/* Right panel - preview */}
+      <div className="flex-1 p-4 pl-0">
+        <PdfPreview
+          pdfData={previewData}
+          isLoading={previewLoading}
+          error={previewError}
+          fileName={
+            selectedFile
+              ? files.find((f) => f.path === selectedFile)?.name ?? null
+              : null
+          }
+          generatedAt={previewGeneratedAt}
+        />
       </div>
     </div>
   );

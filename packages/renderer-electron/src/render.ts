@@ -7,11 +7,18 @@
 
 import { execSync } from "node:child_process";
 import { promises as fs } from "node:fs";
-import { pathToFileURL } from "node:url";
 import type { EmbeddedFontData } from "@mdforge/core/fonts";
 import type { PreparedConversion } from "@mdforge/core/prepare";
 import { addAcroFormFields, injectPdfMetadata } from "@mdforge/pdf";
 import { BrowserWindow } from "electron";
+
+// Simple logger - enable with MDFORGE_DEBUG=1
+const DEBUG = process.env.MDFORGE_DEBUG === "1";
+function log(...args: unknown[]): void {
+  if (DEBUG) {
+    console.log("[renderer-electron]", ...args);
+  }
+}
 
 /**
  * Result of rendering a document.
@@ -182,6 +189,8 @@ function parseCssToInches(value: string | number | undefined): number {
 export async function render(prepared: PreparedConversion): Promise<RenderResult> {
   const { config } = prepared;
 
+  log("Starting render, as_html:", config.as_html, "fillable:", config.fillable);
+
   // Create a hidden BrowserWindow for rendering
   const win = new BrowserWindow({
     width: 1200,
@@ -194,22 +203,26 @@ export async function render(prepared: PreparedConversion): Promise<RenderResult
     },
   });
 
+  log("BrowserWindow created");
+
   try {
     // Build complete HTML with inlined stylesheets
+    log("Building complete HTML...");
     const completeHtml = await buildCompleteHtml(prepared);
+    log("HTML built, length:", completeHtml.length);
 
     // Load the HTML content
     // Use data URI to avoid file system dependencies
     const dataUri = `data:text/html;charset=utf-8,${encodeURIComponent(completeHtml)}`;
-    await win.loadURL(dataUri);
+    log("Loading data URI (length:", dataUri.length, ")...");
 
-    // Wait for page to fully load
-    await new Promise<void>((resolve) => {
-      win.webContents.on("did-finish-load", () => resolve());
-    });
+    // loadURL returns when load completes - no need for did-finish-load listener
+    await win.loadURL(dataUri);
+    log("Page loaded");
 
     // Additional wait for any async resources (fonts, images)
     await new Promise((resolve) => setTimeout(resolve, 100));
+    log("Waited for async resources");
 
     // Extract form field info if fillable mode is enabled
     let selectOptions: Map<string, string[]> | undefined;
@@ -272,13 +285,18 @@ export async function render(prepared: PreparedConversion): Promise<RenderResult
     let outputFileContent: string | Buffer | Uint8Array;
 
     if (config.as_html) {
+      log("Extracting HTML output...");
       outputFileContent = await win.webContents.executeJavaScript(
         "document.documentElement.outerHTML",
       );
+      log("HTML extracted, length:", (outputFileContent as string).length);
     } else {
       // Generate PDF using Electron's printToPDF
+      log("Generating PDF...");
       const pdfOptions = mapPdfOptions(prepared.pdfOptions);
+      log("PDF options:", JSON.stringify(pdfOptions));
       outputFileContent = await win.webContents.printToPDF(pdfOptions);
+      log("PDF generated, size:", (outputFileContent as Buffer).length);
     }
 
     if (config.as_html) {
@@ -288,10 +306,12 @@ export async function render(prepared: PreparedConversion): Promise<RenderResult
     }
 
     // Post-process PDF
+    log("Post-processing PDF...");
     let pdfContent = outputFileContent as Buffer | Uint8Array;
 
     // Inject PDF metadata if configured
     if (config.metadata) {
+      log("Injecting metadata...");
       const metadata = {
         ...config.metadata,
         title: config.metadata.title || config.document_title || undefined,
@@ -309,13 +329,16 @@ export async function render(prepared: PreparedConversion): Promise<RenderResult
 
     // Add AcroForm fields if fillable mode is enabled
     if (config.fillable) {
+      log("Adding AcroForm fields...");
       pdfContent = await addAcroFormFields(Buffer.from(pdfContent), {
         selectOptions,
         formFontInfo,
         embeddedFonts,
       });
+      log("AcroForm fields added");
     }
 
+    log("Render complete, final size:", pdfContent.length);
     return {
       content: pdfContent,
       fillableData:
@@ -325,6 +348,7 @@ export async function render(prepared: PreparedConversion): Promise<RenderResult
     };
   } finally {
     // Always close the window
+    log("Destroying BrowserWindow");
     win.destroy();
   }
 }
