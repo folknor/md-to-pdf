@@ -82,7 +82,8 @@
       "!examples/**/*.css",
       "!.claude",
       "!packages/core/src/data/*.json",
-      "!docs"
+      "!docs",
+      "!scripts"
     ]
   },
   "overrides": [
