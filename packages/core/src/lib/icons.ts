@@ -200,7 +200,11 @@ export async function processIcons(
     refs.map(async ({ prefix, name }) => {
       const key = `${prefix}:${name}`;
       if (!iconMap.has(key)) {
-        const svg = await fetchIcon(prefix, name, apiUrl ?? DEFAULT_ICONIFY_API);
+        const svg = await fetchIcon(
+          prefix,
+          name,
+          apiUrl ?? DEFAULT_ICONIFY_API,
+        );
         if (svg) {
           iconMap.set(key, svg);
         }
