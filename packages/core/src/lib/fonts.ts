@@ -266,11 +266,10 @@ export interface FontStylesheetResult {
 function extractEmbeddedFonts(css: string): EmbeddedFontData[] {
   const fonts: EmbeddedFontData[] = [];
 
-  // Match @font-face blocks
+  // Match @font-face blocks using matchAll to avoid infinite loop issues with continue
   const fontFaceRegex = /@font-face\s*\{([^}]+)\}/g;
-  let match: RegExpExecArray | null = fontFaceRegex.exec(css);
 
-  while (match !== null) {
+  for (const match of css.matchAll(fontFaceRegex)) {
     const block = match[1];
     if (!block) continue;
 
@@ -300,7 +299,6 @@ function extractEmbeddedFonts(css: string): EmbeddedFontData[] {
     }
 
     fonts.push({ family, data: bytes, weight, style });
-    match = fontFaceRegex.exec(css);
   }
 
   return fonts;
