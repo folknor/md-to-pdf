@@ -9,9 +9,29 @@ Render diagrams in PDFs.
       A[Markdown] --> B[PDF]
     ```
 
-- [ ] Integrate mermaid-cli or use Puppeteer-based rendering
-- [ ] Support flowcharts, sequence diagrams, ERD, etc.
+**Approach: Use [mmdr](https://github.com/1jehuang/mermaid-rs-renderer) (mermaid-rs-renderer)**
+
+Pure Rust Mermaid renderer - 500-1600x faster than mermaid-cli, no browser required.
+
+Supports 13 diagram types:
+- **Core:** Flowchart, Sequence, Class, State
+- **Data:** ER Diagram, Pie Chart, XY Chart, Quadrant Chart
+- **Planning:** Gantt, Timeline, Journey
+- **Other:** Mindmap, Git Graph
+
+**Integration strategy:**
+1. Pre-render mermaid code blocks to inline SVG during markdown processing (before Puppeteer)
+2. Shell out to `mmdr` CLI: `echo '<mermaid>' | mmdr -e svg`
+3. Fallback to browser-based mermaid.js if mmdr not installed
+
+**Installation:** Available via cargo, homebrew, scoop, AUR.
+
+- [ ] Detect mermaid code blocks in markdown
+- [ ] Shell out to mmdr CLI for SVG rendering
+- [ ] Inline SVG into HTML before Puppeteer
+- [ ] Graceful fallback if mmdr not available
 - [ ] Configurable theme to match document style
+- [ ] Config option to force browser-based rendering
 
 ## 2. Watch Mode
 
