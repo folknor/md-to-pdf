@@ -9,7 +9,7 @@ import { join } from "node:path";
  * Example: :icon[mdi:home] or :icon[mdi:home]{size=32}
  */
 
-const ICONIFY_API = "https://api.iconify.design";
+const DEFAULT_ICONIFY_API = "https://api.iconify.design";
 
 // Cache directory for downloaded icons
 const CACHE_DIR: string = join(homedir(), ".cache", "mdforge", "icons");
@@ -66,7 +66,11 @@ async function saveToCache(
 /**
  * Fetch icon from Iconify API
  */
-async function fetchIcon(prefix: string, name: string): Promise<string | null> {
+async function fetchIcon(
+  prefix: string,
+  name: string,
+  apiUrl: string = DEFAULT_ICONIFY_API,
+): Promise<string | null> {
   // Check cache first
   const cached = await getFromCache(prefix, name);
   if (cached) {
@@ -74,7 +78,7 @@ async function fetchIcon(prefix: string, name: string): Promise<string | null> {
   }
 
   // Fetch from API
-  const url = `${ICONIFY_API}/${prefix}/${name}.svg`;
+  const url = `${apiUrl}/${prefix}/${name}.svg`;
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -175,8 +179,14 @@ function findIconReferences(
 /**
  * Process icons in markdown content.
  * Fetches icons from Iconify API and replaces :icon[prefix:name] syntax with inline SVGs.
+ *
+ * @param content - Markdown content to process
+ * @param apiUrl - Optional Iconify API URL (defaults to https://api.iconify.design)
  */
-export async function processIcons(content: string): Promise<string> {
+export async function processIcons(
+  content: string,
+  apiUrl?: string,
+): Promise<string> {
   const refs = findIconReferences(content);
 
   if (refs.length === 0) {
@@ -190,7 +200,7 @@ export async function processIcons(content: string): Promise<string> {
     refs.map(async ({ prefix, name }) => {
       const key = `${prefix}:${name}`;
       if (!iconMap.has(key)) {
-        const svg = await fetchIcon(prefix, name);
+        const svg = await fetchIcon(prefix, name, apiUrl ?? DEFAULT_ICONIFY_API);
         if (svg) {
           iconMap.set(key, svg);
         }

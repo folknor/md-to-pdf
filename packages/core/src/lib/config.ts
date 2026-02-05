@@ -226,6 +226,13 @@ export interface Config {
    * Note: Ignored when as_html is true.
    */
   fillable?: boolean;
+
+  /**
+   * Iconify API endpoint for fetching icons.
+   * Default: "https://api.iconify.design"
+   * Set to a self-hosted instance URL for air-gapped deployments.
+   */
+  iconify_api?: string;
 }
 
 export type PuppeteerLaunchOptions = Parameters<typeof launch>[0];

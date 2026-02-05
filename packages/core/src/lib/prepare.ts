@@ -371,7 +371,7 @@ export async function prepareConversion(
 
   // Process :icon[prefix:name] syntax - fetch and inline SVGs from Iconify
   try {
-    processedMd = await processIcons(processedMd);
+    processedMd = await processIcons(processedMd, config.iconify_api);
   } catch (error) {
     const err = error as Error;
     info.warnings.push(
